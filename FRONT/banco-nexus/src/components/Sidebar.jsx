@@ -50,31 +50,7 @@ export default function Sidebar() {
             Datos Cliente
           </button>
 
-          <button className="flex items-center gap-3 text-gray-600 hover:bg-gray-100 p-3 rounded-xl">
-            <Settings size={20} />
-            Configuración
-          </button>
-
-          <button className="flex items-center gap-3 text-gray-600 hover:bg-gray-100 p-3 rounded-xl">
-            <CircleHelp size={20} />
-            Ayuda
-          </button>
-
         </nav>
-      </div>
-
-      <div className="bg-blue-50 rounded-2xl p-5">
-        <h2 className="font-semibold mb-2">
-          ¿Necesitas ayuda?
-        </h2>
-
-        <p className="text-sm text-gray-500 mb-4">
-          Nuestro equipo está disponible 24/7.
-        </p>
-
-        <button className="w-full bg-blue-700 text-white py-3 rounded-xl font-medium">
-          Contactar Soporte
-        </button>
       </div>
 
     </div>
