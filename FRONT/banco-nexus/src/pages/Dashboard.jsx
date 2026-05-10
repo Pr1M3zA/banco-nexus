@@ -10,14 +10,15 @@ import {
 } from "lucide-react";
 
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import { useState, useMemo } from "react";
 
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
@@ -30,6 +31,18 @@ import {
 } from "../data/mockData";
 
 export default function Dashboard() {
+  const [filtro, setFiltro] = useState("mes");
+
+  const filteredEvolucion = useMemo(() => {
+    const now = new Date();
+    let limitDate = new Date(0);
+    if (filtro === "semana") limitDate.setDate(now.getDate() - 7);
+    else if (filtro === "mes") limitDate.setMonth(now.getMonth() - 1);
+    else if (filtro === "anual") limitDate.setFullYear(now.getFullYear() - 1);
+
+    // Asumiendo que evolucionSaldo tiene fechas en formato string que JS puede parsear
+    return evolucionSaldo.filter(d => new Date(d.fecha) >= limitDate);
+  }, [filtro]);
   return (
     <div className="flex bg-gray-100 min-h-screen">
       <Sidebar />
@@ -135,19 +148,48 @@ export default function Dashboard() {
 
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={evolucionSaldo}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="fecha" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
+                <AreaChart data={filteredEvolucion}>
+                  <defs>
+                    <linearGradient id="colorSaldoDash" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#1d4ed8" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#1d4ed8" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="fecha" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#94a3b8', fontSize: 10 }} 
+                  />
+                  <YAxis hide domain={['auto', 'auto']} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Area
                     type="monotone"
                     dataKey="saldo"
                     stroke="#1d4ed8"
                     strokeWidth={4}
+                    fillOpacity={1}
+                    fill="url(#colorSaldoDash)"
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
+            </div>
+
+            <div className="flex justify-center mt-4 gap-2">
+              {['semana', 'mes', 'anual'].map(p => (
+                <button
+                  key={p}
+                  onClick={() => setFiltro(p)}
+                  className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition ${
+                    filtro === p ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:bg-slate-100"
+                  }`}
+                >
+                  {p === 'semana' ? 'Semanal' : p === 'mes' ? 'Mensual' : 'Anual'}
+                </button>
+              ))}
             </div>
           </section>
 
