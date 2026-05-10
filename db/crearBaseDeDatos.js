@@ -33,7 +33,7 @@ const tiposCuenta = ["ahorro", "corriente", "nomina"];
 
 const cuentas = clientesIds.map((idCliente, index) => ({
   clienteId: idCliente,
-  numeroCuenta: `NX${String(100 + index).padStart(4, "0")}1`,
+  numeroCuenta: `NX${String(1001 + index).padStart(5, "0")}`,
   tipo: tiposCuenta[Math.floor(Math.random() * tiposCuenta.length)],
   tarjeta: `4321 9876 ${Math.random().toFixed(4).slice(2)} ${Math.random().toFixed(4).slice(2)}`,
   saldo: parseFloat((Math.random() * 49000 + 1000).toFixed(2)),
