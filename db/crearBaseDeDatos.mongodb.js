@@ -26,25 +26,48 @@ const clientesBase = [
 const clientesInsertados = db.clientes.insertMany(clientesBase);
 const clientesIds = Object.values(clientesInsertados.insertedIds);
 
-// Generar cuentas (1 por cliente)
+// Generar cuentas (3 por cliente: nomina, ahorro, credito)
+const cuentas = [];
+clientesIds.forEach((idCliente, index) => {
+  const baseNum = 100 + index;
+  
+  // Nómina
+  cuentas.push({
+    clienteId: idCliente,
+    numeroCuenta: `NX${String(baseNum).padStart(4, "0")}1`,
+    tipo: "nomina",
+    tarjeta: `4321 9876 ${Math.random().toFixed(4).slice(2)} ${Math.random().toFixed(4).slice(2)}`,
+    saldo: parseFloat((Math.random() * 30000 + 5000).toFixed(2)),
+    status: "activa",
+    fechaApertura: new Date(),
+  });
 
-const tiposCuenta = ["ahorro", "corriente", "nomina"];
+  // Ahorro
+  cuentas.push({
+    clienteId: idCliente,
+    numeroCuenta: `NX${String(baseNum).padStart(4, "0")}2`,
+    tipo: "ahorro",
+    tarjeta: `4321 8876 ${Math.random().toFixed(4).slice(2)} ${Math.random().toFixed(4).slice(2)}`,
+    saldo: parseFloat((Math.random() * 50000 + 10000).toFixed(2)),
+    status: "activa",
+    fechaApertura: new Date(),
+  });
 
-
-const cuentas = clientesIds.map((idCliente, index) => ({
-  clienteId: idCliente,
-  numeroCuenta: `NX${String(100 + index).padStart(4, "0")}1`,
-  tipo: tiposCuenta[Math.floor(Math.random() * tiposCuenta.length)],
-  tarjeta: `4321 9876 ${Math.random().toFixed(4).slice(2)} ${Math.random().toFixed(4).slice(2)}`,
-  saldo: parseFloat((Math.random() * 49000 + 1000).toFixed(2)),
-  status: "activa",
-  fechaApertura: new Date(),
-}));
+  // Crédito
+  cuentas.push({
+    clienteId: idCliente,
+    numeroCuenta: `NX${String(baseNum).padStart(4, "0")}3`,
+    tipo: "credito",
+    tarjeta: `4321 7876 ${Math.random().toFixed(4).slice(2)} ${Math.random().toFixed(4).slice(2)}`,
+    saldo: parseFloat((Math.random() * -15000).toFixed(2)), 
+    status: "activa",
+    fechaApertura: new Date(),
+  });
+});
 
 const cuentasInsertadas = db.cuentas.insertMany(cuentas);
 const cuentasIds = Object.values(cuentasInsertadas.insertedIds);
 
-// Generar transacciones (1 por cuenta) 
 
 const conceptos = {
   deposito: ["Deposito en ventanilla", "Transferencia recibida", "Abono de nomina"],
