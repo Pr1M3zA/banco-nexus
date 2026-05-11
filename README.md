@@ -13,7 +13,7 @@ Proyecto académico para la materia de Sistemas Distribuidos.
 
 # Configuración del Frontend
 
-## 1. Entrar a la carpeta FRONT
+## 1. Entrar a la carpeta app
 
 ```bash
 cd FRONT/banco-nexus
