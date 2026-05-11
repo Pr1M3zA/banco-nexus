@@ -34,9 +34,9 @@ const tiposCuenta = ["ahorro", "corriente", "nomina"];
 const cuentas = clientesIds.map((idCliente, index) => ({
   clienteId: idCliente,
   numeroCuenta: `NX${String(100 + index).padStart(4, "0")}1`,
-  tipo: tiposCuenta[Math.floor(Math.random() * tiposCuenta.length)],
-  tarjeta: `4321 9876 ${Math.random().toFixed(4).slice(2)} ${Math.random().toFixed(4).slice(2)}`,
-  saldo: parseFloat((Math.random() * 49000 + 1000).toFixed(2)),
+  tipo: tiposCuenta[index % 3],
+  tarjeta: `4321 9876 ${ (1000 + index * 111).toString().slice(0, 4)} ${(2000 + index * 222).toString().slice(0, 4)}`,
+  saldo: parseFloat((1000 + (index * (48000 / 10))).toFixed(2)),
   status: "activa",
   fechaApertura: new Date(),
 }));
@@ -54,9 +54,9 @@ const conceptos = {
 
 const transacciones = cuentasIds.map((idCuenta, index) => ({
   cuentaId: idCuenta,
-  monto: parseFloat((Math.random() * 4900 + 100).toFixed(2)),
+  monto: parseFloat((1000 + (index * (5000 / 10))).toFixed(2)),
   tipo: index % 3 === 0 ? "deposito" : index % 3 === 1 ? "retiro" : "cargo",
-  concepto: conceptos[index % 3 === 0 ? "deposito" : index % 3 === 1 ? "retiro" : "cargo"][Math.floor(Math.random() * 3)],
+  concepto: conceptos[index % 3 === 0 ? "deposito" : index % 3 === 1 ? "retiro" : "cargo"][index % 3],
   fecha: new Date(),
 }));
 
