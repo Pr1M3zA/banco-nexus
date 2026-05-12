@@ -16,7 +16,7 @@ Proyecto académico para la materia de Sistemas Distribuidos.
 ## 1. Entrar a la carpeta app
 
 ```bash
-cd FRONT/banco-nexus
+cd .\app\
 ```
 
 ## 2. Instalar dependencias
