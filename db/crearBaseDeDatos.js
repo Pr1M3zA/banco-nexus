@@ -52,11 +52,15 @@ const conceptos = {
   cargo: ["Comision mensual", "Cargo por servicio", "Pago con tarjeta"],
 };
 
+// Sucursales para simular operaciones remotas
+const sucursales = ["CDMX", "GDL", "MTY", "CUN", "QRO"];
+
 const transacciones = cuentasIds.map((idCuenta, index) => ({
   cuentaId: idCuenta,
   monto: parseFloat((1000 + (index * (5000 / 10))).toFixed(2)),
   tipo: index % 3 === 0 ? "deposito" : index % 3 === 1 ? "retiro" : "cargo",
   concepto: conceptos[index % 3 === 0 ? "deposito" : index % 3 === 1 ? "retiro" : "cargo"][index % 3],
+  sucursal: sucursales[index % sucursales.length],
   fecha: new Date(),
 }));
 
@@ -75,4 +79,4 @@ const ejCuenta = db.cuentas.findOne({ clienteId: ejCliente._id });
 const ejTx = db.transacciones.findOne({ cuentaId: ejCuenta._id });
 
 print("\n--- Ejemplo de registro encadenado ---");
-printjson({ cliente: ejCliente.nombre, cuenta: ejCuenta.numeroCuenta, ultimaTx: ejTx.concepto });
+printjson({ cliente: ejCliente.nombre, cuenta: ejCuenta.numeroCuenta, ultimaTx: ejTx.concepto, sucursal: ejTx.sucursal });
