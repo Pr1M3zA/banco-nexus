@@ -12,7 +12,7 @@ async function runSimulation() {
         registerTransaction(targetAccount, 100, 'deposito', 'CDMX Branch'),
         registerTransaction(targetAccount, 200, 'deposito', 'GDL Branch'),
         registerTransaction(targetAccount, 300, 'deposito', 'MTY Branch'),
-        registerTransaction(targetAccount, 50,  'retiro',   'TIJ Branch'),
+        registerTransaction(targetAccount, 50,  'retiro',   'QRO Branch'),
         registerTransaction(targetAccount, 150, 'deposito', 'CUN Branch')
     ];
 
