@@ -6,7 +6,9 @@ import Navbar from "../components/Navbar";
 
 export default function DatosCliente() {
   const [cuentas, setCuentas] = useState([]);
-  const [cuentaActual, setCuentaActual] = useState("");
+  const [cuentaActual, setCuentaActual] = useState(() => {
+    return localStorage.getItem("cuentaActual") || "";
+  });
   const [datosCuenta, setDatosCuenta] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -27,8 +29,11 @@ export default function DatosCliente() {
       const lista = Array.isArray(data) ? data : [];
       setCuentas(lista);
 
-      if (lista.length > 0) {
-        setCuentaActual(lista[0].cuenta);
+      const cuentaGuardada = localStorage.getItem("cuentaActual");
+      if (!cuentaGuardada && lista.length > 0) {
+        const primera = lista[0].cuenta;
+        setCuentaActual(primera);
+        localStorage.setItem("cuentaActual", primera);
       }
     } catch (error) {
       console.error("Error cargando cuentas:", error);
@@ -61,7 +66,10 @@ export default function DatosCliente() {
   }, []);
 
   useEffect(() => {
-    if (cuentaActual) cargarDatos(cuentaActual);
+    if (cuentaActual) {
+      localStorage.setItem("cuentaActual", cuentaActual);
+      cargarDatos(cuentaActual);
+    }
   }, [cuentaActual]);
 
   if (loading) {

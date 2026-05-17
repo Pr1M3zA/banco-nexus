@@ -2,7 +2,7 @@ import {
   Search,
   Bell,
   Mail,
-  Settings,
+  User,
 } from "lucide-react";
 
 export default function Navbar({ usuario }) {
@@ -33,21 +33,15 @@ export default function Navbar({ usuario }) {
           <Mail size={20} />
         </button>
 
-        <button className="bg-white p-3 rounded-xl shadow-sm">
-          <Settings size={20} />
-        </button>
-
         <button className="bg-blue-700 text-white px-5 py-3 rounded-xl font-medium">
           + Nueva Transferencia
         </button>
 
         <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl shadow-sm">
 
-          <img
-            src="https://i.pravatar.cc/40"
-            alt="perfil"
-            className="w-10 h-10 rounded-full"
-          />
+          <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center flex-shrink-0">
+            <User size={20} className="stroke-[1.5]" />
+          </div>
 
           <div>
             <h3 className="font-semibold">

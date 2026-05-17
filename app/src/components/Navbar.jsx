@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Settings, ChevronDown, Check, Moon, Sun } from "lucide-react";
+import { ChevronDown, Check, Moon, Sun, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 
 export default function Navbar({
@@ -9,6 +10,7 @@ export default function Navbar({
   onCambiarCuenta,
 }) {
   const [abierto, setAbierto] = useState(false);
+  const navigate = useNavigate();
 
   const cuentaSeleccionada = useMemo(() => {
     return cuentas.find((c) => c.cuenta === cuentaActual);
@@ -36,11 +38,11 @@ export default function Navbar({
       </div>
 
       <div className="flex items-center gap-4">
-        <button className="bg-white p-3 rounded-xl shadow-sm hover:bg-gray-50 transition">
-          <Settings size={20} />
-        </button>
 
-        <button className="bg-blue-700 text-white px-5 py-3 rounded-xl font-medium hover:bg-blue-800 transition">
+        <button
+          onClick={() => navigate("/consulta", { state: { origin: "transferencia" } })}
+          className="bg-blue-700 text-white px-5 py-3 rounded-xl font-medium hover:bg-blue-800 transition"
+        >
           + Nueva Transferencia
         </button>
 
@@ -50,11 +52,9 @@ export default function Navbar({
             onClick={() => setAbierto(!abierto)}
             className="flex items-center gap-3 bg-white px-4 py-3 rounded-xl shadow-sm min-w-72 hover:bg-gray-50 transition"
           >
-            <img
-              src="https://i.pravatar.cc/80"
-              alt="perfil"
-              className="w-12 h-12 rounded-full object-cover"
-            />
+            <div className="w-12 h-12 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center flex-shrink-0">
+              <User size={24} className="stroke-[1.5]" />
+            </div>
 
             <div className="flex-1 text-left">
               <p className="font-bold text-gray-900 leading-tight">

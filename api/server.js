@@ -73,6 +73,37 @@ app.get('/', (req, res) => {
   });
 });
 
+// get para cambir de perfiles
+app.get('/api/cuentas', async (req, res) => {
+  try {
+    const cuentasDB = await coleccion('cuentas').find({}).toArray();
+    const cuentasFormateadas = [];
+
+    for (const cuenta of cuentasDB) {
+      let nombreCliente = "Usuario";
+      if (cuenta.clienteId) {
+        const clienteDoc = await coleccion('clientes').findOne({
+          _id: new ObjectId(cuenta.clienteId),
+        });
+        if (clienteDoc) {
+          nombreCliente = clienteDoc.nombre;
+        }
+      }
+
+      cuentasFormateadas.push({
+        cuenta: cuenta.numeroCuenta,
+        tipo: cuenta.tipo,
+        cliente: nombreCliente,
+      });
+    }
+
+    res.json(cuentasFormateadas);
+  } catch (error) {
+    console.error(error);
+    respuestaError(res, 500, 'Error interno del servidor');
+  }
+});
+
 // ─────────────────────────────────────────────────────────────
 // GET /api/cuenta/:cuenta
 // Obtener datos de cuenta
@@ -108,11 +139,11 @@ app.get('/api/cuenta/:cuenta', async (req, res) => {
       },
       cliente: clienteDoc
         ? {
-            nombre: clienteDoc.nombre,
-            curp: clienteDoc.curp,
-            correo: clienteDoc.correo,
-            telefono: clienteDoc.telefono,
-          }
+          nombre: clienteDoc.nombre,
+          curp: clienteDoc.curp,
+          correo: clienteDoc.correo,
+          telefono: clienteDoc.telefono,
+        }
         : null,
     });
   } catch (error) {
@@ -179,6 +210,14 @@ app.post('/api/deposito', async (req, res) => {
         res,
         400,
         'El monto debe ser un número positivo'
+      );
+    }
+
+    if (monto < 1.00) {
+      return respuestaError(
+        res,
+        400,
+        'El monto mínimo de depósito es de $1.00'
       );
     }
 
@@ -254,6 +293,14 @@ app.post('/api/retiro', async (req, res) => {
         res,
         400,
         'El monto debe ser un número positivo'
+      );
+    }
+
+    if (monto < 1.00) {
+      return respuestaError(
+        res,
+        400,
+        'El monto mínimo de retiro es de $1.00'
       );
     }
 

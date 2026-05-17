@@ -3,7 +3,6 @@ import {
   Search,
   Wallet,
   ArrowRightLeft,
-  ChartColumn,
   User,
 } from "lucide-react";
 
@@ -45,11 +44,6 @@ export default function Sidebar() {
           <NavLink to="/movimientos" className={linkClass}>
             <ArrowRightLeft size={20} />
             Movimientos
-          </NavLink>
-
-          <NavLink to="/evolucion" className={linkClass}>
-            <ChartColumn size={20} />
-            Evolución
           </NavLink>
 
           <NavLink to="/cliente" className={linkClass}>

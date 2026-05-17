@@ -19,7 +19,9 @@ export default function Dashboard() {
   const [datosCuenta, setDatosCuenta] = useState(null);
   const [movimientos, setMovimientos] = useState([]);
   const [cuentas, setCuentas] = useState([]);
-  const [cuentaActual, setCuentaActual] = useState(cuentaInicial);
+  const [cuentaActual, setCuentaActual] = useState(() => {
+    return localStorage.getItem("cuentaActual") || cuentaInicial;
+  });
   const [loading, setLoading] = useState(true);
 
   const obtenerSaldo = () => datosCuenta?.cuenta?.saldo ?? 0;
@@ -34,7 +36,14 @@ export default function Dashboard() {
     try {
       const res = await fetch("http://localhost:3001/api/cuentas");
       const data = await res.json();
-      setCuentas(Array.isArray(data) ? data : []);
+      const lista = Array.isArray(data) ? data : [];
+      setCuentas(lista);
+      const cuentaGuardada = localStorage.getItem("cuentaActual");
+      if (!cuentaGuardada && lista.length > 0) {
+        const primera = lista[0].cuenta;
+        setCuentaActual(primera);
+        localStorage.setItem("cuentaActual", primera);
+      }
     } catch (error) {
       console.error("Error cargando cuentas:", error);
       setCuentas([]);
@@ -56,8 +65,8 @@ export default function Dashboard() {
       const dataHistorial = await resHistorial.json();
 
       const listaMovimientos = Array.isArray(dataHistorial)
-        ? dataHistorial
-        : dataHistorial.movimientos || [];
+          ? dataHistorial
+          : dataHistorial.movimientos || [];
 
       setDatosCuenta(dataCuenta);
       setMovimientos(listaMovimientos);
@@ -75,7 +84,10 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    cargarDatos(cuentaActual);
+    if (cuentaActual) {
+      localStorage.setItem("cuentaActual", cuentaActual);
+      cargarDatos(cuentaActual);
+    }
   }, [cuentaActual]);
 
   const ingresos = movimientos

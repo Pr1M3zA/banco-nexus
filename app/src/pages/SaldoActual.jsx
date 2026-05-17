@@ -9,7 +9,9 @@ export default function SaldoActual() {
 
   const [datosCuenta, setDatosCuenta] = useState(null);
   const [cuentas, setCuentas] = useState([]);
-  const [cuentaActual, setCuentaActual] = useState(cuentaInicial);
+  const [cuentaActual, setCuentaActual] = useState(() => {
+    return localStorage.getItem("cuentaActual") || cuentaInicial;
+  });
   const [loading, setLoading] = useState(true);
 
   const obtenerSaldo = () => datosCuenta?.cuenta?.saldo ?? 0;
@@ -27,8 +29,11 @@ export default function SaldoActual() {
       const lista = Array.isArray(data) ? data : [];
       setCuentas(lista);
 
-      if (lista.length > 0) {
-        setCuentaActual(lista[0].cuenta);
+      const cuentaGuardada = localStorage.getItem("cuentaActual");
+      if (!cuentaGuardada && lista.length > 0) {
+        const primera = lista[0].cuenta;
+        setCuentaActual(primera);
+        localStorage.setItem("cuentaActual", primera);
       }
     } catch (error) {
       console.error("Error cargando cuentas:", error);
@@ -62,6 +67,7 @@ export default function SaldoActual() {
 
   useEffect(() => {
     if (cuentaActual) {
+      localStorage.setItem("cuentaActual", cuentaActual);
       cargarDatos(cuentaActual);
     }
   }, [cuentaActual]);

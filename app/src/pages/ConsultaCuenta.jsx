@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
+import { useLocation } from "react-router-dom";
 import {
   Search,
   User,
@@ -24,6 +25,9 @@ import {
 import AlertMessage from "../components/AlertMessage";
 
 export default function ConsultaCuenta() {
+  const location = useLocation();
+  const inputRef = useRef(null);
+
   const [numeroCuentaInput, setNumeroCuentaInput] = useState("");
   const [datosCuenta, setDatosCuenta] = useState(null);
   const [movimientos, setMovimientos] = useState([]);
@@ -38,6 +42,23 @@ export default function ConsultaCuenta() {
     message: "",
   });
 
+  const [alertaOperacion, setAlertaOperacion] = useState({
+    type: "",
+    message: "",
+  });
+
+  useEffect(() => {
+    if (location.state?.origin === "transferencia") {
+      setAlerta({
+        type: "info",
+        message: "Por favor, ingresa el número de cuenta destino para realizar una operación.",
+      });
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
   const obtenerNumeroCuenta = () => {
     return datosCuenta?.cuenta?.numeroCuenta || datosCuenta?.cuenta;
   };
@@ -60,6 +81,7 @@ export default function ConsultaCuenta() {
 
   const fetchDatos = async (cuenta, mostrarMensaje = true) => {
     setAlerta({ type: "", message: "" });
+    setAlertaOperacion({ type: "", message: "" });
 
     if (!cuenta || cuenta.trim() === "") {
       setAlerta({
@@ -93,8 +115,8 @@ export default function ConsultaCuenta() {
       if (!resHistorial.ok) {
         throw new Error(
           dataHistorial.error ||
-            dataHistorial.mensaje ||
-            "No se pudo cargar el historial."
+          dataHistorial.mensaje ||
+          "No se pudo cargar el historial."
         );
       }
 
@@ -189,10 +211,11 @@ export default function ConsultaCuenta() {
   }, [movimientos, datosCuenta, filtro]);
 
   const handleOperacion = async (tipo) => {
+    setAlertaOperacion({ type: "", message: "" });
     setAlerta({ type: "", message: "" });
 
     if (!datosCuenta) {
-      setAlerta({
+      setAlertaOperacion({
         type: "warning",
         message: "Primero consulta una cuenta antes de realizar operaciones.",
       });
@@ -200,7 +223,7 @@ export default function ConsultaCuenta() {
     }
 
     if (!monto || monto.trim() === "") {
-      setAlerta({
+      setAlertaOperacion({
         type: "warning",
         message: "Ingresa un monto para la operación.",
       });
@@ -210,9 +233,27 @@ export default function ConsultaCuenta() {
     const valorMonto = parseFloat(monto);
 
     if (isNaN(valorMonto) || valorMonto <= 0) {
-      setAlerta({
+      setAlertaOperacion({
         type: "warning",
-        message: "El monto debe ser un número mayor a 0.",
+        message: "No es posible realizar depósitos o retiros por montos negativos o iguales a cero.",
+      });
+      return;
+    }
+
+    if (valorMonto < 1.00) {
+      setAlertaOperacion({
+        type: "warning",
+        message: `El monto mínimo permitido para realizar un ${tipo === "deposito" ? "depósito" : "retiro"} es de $1.00.`,
+      });
+      return;
+    }
+
+    if (tipo === "retiro" && valorMonto > obtenerSaldo()) {
+      setAlertaOperacion({
+        type: "warning",
+        message: `No puedes retirar más de lo que la cuenta tiene disponible ($${obtenerSaldo().toLocaleString("es-MX", {
+          minimumFractionDigits: 2,
+        })}).`,
       });
       return;
     }
@@ -245,7 +286,7 @@ export default function ConsultaCuenta() {
 
       await fetchDatos(numeroCuenta, false);
 
-      setAlerta({
+      setAlertaOperacion({
         type: "success",
         message:
           data.mensaje ||
@@ -254,7 +295,7 @@ export default function ConsultaCuenta() {
             : "Retiro realizado correctamente."),
       });
     } catch (err) {
-      setAlerta({
+      setAlertaOperacion({
         type: "error",
         message: err.message || "Error de conexión con la API.",
       });
@@ -298,6 +339,7 @@ export default function ConsultaCuenta() {
 
             <div className="flex gap-4">
               <input
+                ref={inputRef}
                 type="text"
                 placeholder="NX01001"
                 value={numeroCuentaInput}
@@ -409,6 +451,14 @@ export default function ConsultaCuenta() {
 
             <section className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col md:flex-row items-end gap-6">
               <div className="flex-1 w-full space-y-4">
+                {alertaOperacion.message && (
+                  <AlertMessage
+                    type={alertaOperacion.type}
+                    message={alertaOperacion.message}
+                    onClose={() => setAlertaOperacion({ type: "", message: "" })}
+                  />
+                )}
+
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                     Monto de la Operación
@@ -420,6 +470,8 @@ export default function ConsultaCuenta() {
                     </span>
                     <input
                       type="number"
+                      min="1"
+                      step="0.01"
                       placeholder="0.00"
                       value={monto}
                       onChange={(e) => setMonto(e.target.value)}
@@ -568,19 +620,18 @@ export default function ConsultaCuenta() {
                   <button
                     key={p}
                     onClick={() => setFiltro(p)}
-                    className={`px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${
-                      filtro === p
-                        ? "bg-blue-600 text-white shadow-lg shadow-blue-200 scale-105"
-                        : "text-slate-400 hover:bg-slate-50"
-                    }`}
+                    className={`px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${filtro === p
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-200 scale-105"
+                      : "text-slate-400 hover:bg-slate-50"
+                      }`}
                   >
                     {p === "semana"
                       ? "Semanal"
                       : p === "mes"
-                      ? "Mensual"
-                      : p === "anual"
-                      ? "Anual"
-                      : "Todo"}
+                        ? "Mensual"
+                        : p === "anual"
+                          ? "Anual"
+                          : "Todo"}
                   </button>
                 ))}
               </div>
@@ -597,17 +648,16 @@ export default function ConsultaCuenta() {
                     <button
                       key={p}
                       onClick={() => setFiltro(p)}
-                      className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition ${
-                        filtro === p
-                          ? "bg-slate-100 text-slate-800"
-                          : "text-slate-400 hover:bg-slate-50"
-                      }`}
+                      className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition ${filtro === p
+                        ? "bg-slate-100 text-slate-800"
+                        : "text-slate-400 hover:bg-slate-50"
+                        }`}
                     >
                       {p === "semana"
                         ? "Semana"
                         : p === "mes"
-                        ? "Mes"
-                        : "Todo"}
+                          ? "Mes"
+                          : "Todo"}
                     </button>
                   ))}
                 </div>
@@ -622,11 +672,10 @@ export default function ConsultaCuenta() {
                     >
                       <div className="flex items-center gap-4">
                         <div
-                          className={`p-3 rounded-xl ${
-                            mov.tipo === "deposito"
-                              ? "bg-emerald-50 text-emerald-600"
-                              : "bg-rose-50 text-rose-600"
-                          }`}
+                          className={`p-3 rounded-xl ${mov.tipo === "deposito"
+                            ? "bg-emerald-50 text-emerald-600"
+                            : "bg-rose-50 text-rose-600"
+                            }`}
                         >
                           {mov.tipo === "deposito" ? (
                             <ArrowUpRight size={20} />
@@ -657,11 +706,10 @@ export default function ConsultaCuenta() {
 
                       <div className="text-right">
                         <p
-                          className={`text-sm font-black ${
-                            mov.tipo === "deposito"
-                              ? "text-emerald-600"
-                              : "text-rose-600"
-                          }`}
+                          className={`text-sm font-black ${mov.tipo === "deposito"
+                            ? "text-emerald-600"
+                            : "text-rose-600"
+                            }`}
                         >
                           {mov.tipo === "deposito" ? "+" : "-"}$
                           {Math.abs(mov.monto).toLocaleString("es-MX", {

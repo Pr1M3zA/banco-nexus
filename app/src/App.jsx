@@ -4,7 +4,6 @@ import Dashboard from "./pages/Dashboard";
 import ConsultaCuenta from "./pages/ConsultaCuenta";
 import SaldoActual from "./pages/SaldoActual";
 import Movimientos from "./pages/Movimientos";
-import Evolucion from "./pages/Evolucion";
 import DatosCliente from "./pages/DatosCliente";
 
 function App() {
@@ -16,7 +15,6 @@ function App() {
         <Route path="/consulta" element={<ConsultaCuenta />} />
         <Route path="/saldo" element={<SaldoActual />} />
         <Route path="/movimientos" element={<Movimientos />} />
-        <Route path="/evolucion" element={<Evolucion />} />
         <Route path="/cliente" element={<DatosCliente />} />
         <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
