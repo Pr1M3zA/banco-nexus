@@ -5,7 +5,7 @@ async function runSimulation() {
     console.log("Starting concurrency simulation for Banco Nexus...");
     
     // NOTA: Cambia 'NX1001' por cualquier número de cuenta real que exista en tu BD local
-    const targetAccount = 'NX1001'; 
+    const targetAccount = 'NX01001'; 
     
     // Create 5 parallel actions targeting the SAME account
     const operations = [
@@ -27,7 +27,7 @@ async function runSimulation() {
     const client = new MongoClient('mongodb://localhost:27017');
     try {
         await client.connect();
-        const finalAccount = await client.db('banco_nexus').collection('cuentas').findOne({ numeroCuenta: targetAccount });
+        const finalAccount = await client.db('BancoNexus').collection('cuentas').findOne({ numeroCuenta: targetAccount });
         console.log(`\n💰 Final DB balance for account ${targetAccount}: $${finalAccount.saldo}`);
     } finally {
         await client.close();
