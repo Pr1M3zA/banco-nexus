@@ -65,8 +65,8 @@ export default function Dashboard() {
       const dataHistorial = await resHistorial.json();
 
       const listaMovimientos = Array.isArray(dataHistorial)
-          ? dataHistorial
-          : dataHistorial.movimientos || [];
+        ? dataHistorial
+        : dataHistorial.movimientos || [];
 
       setDatosCuenta(dataCuenta);
       setMovimientos(listaMovimientos);
@@ -106,19 +106,40 @@ export default function Dashboard() {
     );
 
     let saldo = obtenerSaldo() - ingresos + egresos;
+    const points = [];
 
-    return ordenados.map((m) => {
+    // Agregar punto inicial de Apertura con la fecha de apertura real de la cuenta
+    const fechaAperturaRaw = datosCuenta?.cuenta?.fechaApertura || datosCuenta?.fechaApertura;
+    if (fechaAperturaRaw) {
+      const fechaApertura = new Date(fechaAperturaRaw);
+      points.push({
+        fecha: fechaApertura.toLocaleDateString("es-MX", {
+          day: "2-digit",
+          month: "short",
+        }),
+        saldo: saldo,
+      });
+    } else if (ordenados.length > 0) {
+      points.push({
+        fecha: "Apertura",
+        saldo: saldo,
+      });
+    }
+
+    ordenados.forEach((m) => {
       if (m.tipo === "deposito") saldo += Number(m.monto || 0);
       else saldo -= Math.abs(Number(m.monto || 0));
 
-      return {
+      points.push({
         fecha: new Date(m.fecha).toLocaleDateString("es-MX", {
           day: "2-digit",
           month: "short",
         }),
         saldo,
-      };
+      });
     });
+
+    return points;
   }, [datosCuenta, movimientos, ingresos, egresos]);
 
   if (loading) {
@@ -209,11 +230,10 @@ export default function Dashboard() {
                   <div key={index} className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div
-                        className={`p-3 rounded-2xl ${
-                          movimiento.tipo === "deposito"
+                        className={`p-3 rounded-2xl ${movimiento.tipo === "deposito"
                             ? "bg-green-100 text-green-600"
                             : "bg-red-100 text-red-600"
-                        }`}
+                          }`}
                       >
                         {movimiento.tipo === "deposito" ? (
                           <ArrowUp size={20} />
@@ -235,11 +255,10 @@ export default function Dashboard() {
                     </div>
 
                     <p
-                      className={`font-bold ${
-                        movimiento.tipo === "deposito"
+                      className={`font-bold ${movimiento.tipo === "deposito"
                           ? "text-green-600"
                           : "text-red-600"
-                      }`}
+                        }`}
                     >
                       {movimiento.tipo === "deposito" ? "+" : "-"}$
                       {Math.abs(Number(movimiento.monto || 0)).toLocaleString("es-MX")}

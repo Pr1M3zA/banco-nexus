@@ -35,7 +35,7 @@ const cuentas = clientesIds.map((idCliente, index) => ({
   clienteId: idCliente,
   numeroCuenta: `NX${String(100 + index).padStart(4, "0")}1`,
   tipo: tiposCuenta[index % 3],
-  tarjeta: `4321 9876 ${ (1000 + index * 111).toString().slice(0, 4)} ${(2000 + index * 222).toString().slice(0, 4)}`,
+  tarjeta: `4321 9876 ${(1000 + index * 111).toString().slice(0, 4)} ${(2000 + index * 222).toString().slice(0, 4)}`,
   saldo: parseFloat((1000 + (index * (48000 / 10))).toFixed(2)),
   status: "activa",
   fechaApertura: new Date(),

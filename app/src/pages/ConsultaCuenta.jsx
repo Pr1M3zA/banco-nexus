@@ -184,6 +184,28 @@ export default function ConsultaCuenta() {
 
     const points = [];
 
+    // Agregar punto inicial de Apertura con la fecha de apertura real de la cuenta
+    const fechaAperturaRaw = datosCuenta?.cuenta?.fechaApertura || datosCuenta?.fechaApertura;
+    if (fechaAperturaRaw) {
+      const fechaApertura = new Date(fechaAperturaRaw);
+      points.push({
+        label: fechaApertura.toLocaleDateString("es-MX", {
+          day: "2-digit",
+          month: "short",
+        }),
+        saldo: runningBalance,
+        timestamp: fechaApertura.getTime(),
+      });
+    } else if (sortedMovs.length > 0) {
+      const fechaPrimerMov = new Date(sortedMovs[0].fecha);
+      const fechaAperturaFallback = new Date(fechaPrimerMov.getTime() - 24 * 60 * 60 * 1000);
+      points.push({
+        label: "Apertura",
+        saldo: runningBalance,
+        timestamp: fechaAperturaFallback.getTime(),
+      });
+    }
+
     sortedMovs.forEach((tx) => {
       if (tx.tipo === "deposito") runningBalance += Number(tx.monto);
       else runningBalance -= Math.abs(Number(tx.monto));
