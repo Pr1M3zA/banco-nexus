@@ -1,17 +1,33 @@
-import {
-  Search,
-  Bell,
-  Mail,
-  Settings,
-} from "lucide-react";
+import { useMemo, useState } from "react";
+import { Settings, ChevronDown, Check, Moon, Sun } from "lucide-react";
 
-export default function Navbar({ usuario }) {
+
+export default function Navbar({
+  usuario,
+  cuentas = [],
+  cuentaActual,
+  onCambiarCuenta,
+}) {
+  const [abierto, setAbierto] = useState(false);
+
+  const cuentaSeleccionada = useMemo(() => {
+    return cuentas.find((c) => c.cuenta === cuentaActual);
+  }, [cuentas, cuentaActual]);
+
+  const nombre = cuentaSeleccionada?.cliente || usuario?.nombre || "Usuario";
+  const tipoCuenta = cuentaSeleccionada?.tipo || usuario?.tipoCuenta || "";
+  const numeroCuenta = cuentaSeleccionada?.cuenta || cuentaActual || "";
+
+  const cambiarCuenta = (cuenta) => {
+    onCambiarCuenta(cuenta);
+    setAbierto(false);
+  };
+
   return (
     <div className="flex items-center justify-between mb-10">
-
       <div>
         <h1 className="text-4xl font-bold">
-          Bienvenido, {usuario.nombre}
+          Bienvenido, {nombre}
         </h1>
 
         <p className="text-gray-500 mt-2">
@@ -20,49 +36,89 @@ export default function Navbar({ usuario }) {
       </div>
 
       <div className="flex items-center gap-4">
-
-        <button className="bg-white p-3 rounded-xl shadow-sm">
-          <Search size={20} />
-        </button>
-
-        <button className="bg-white p-3 rounded-xl shadow-sm">
-          <Bell size={20} />
-        </button>
-
-        <button className="bg-white p-3 rounded-xl shadow-sm">
-          <Mail size={20} />
-        </button>
-
-        <button className="bg-white p-3 rounded-xl shadow-sm">
+        <button className="bg-white p-3 rounded-xl shadow-sm hover:bg-gray-50 transition">
           <Settings size={20} />
         </button>
 
-        <button className="bg-blue-700 text-white px-5 py-3 rounded-xl font-medium">
+        <button className="bg-blue-700 text-white px-5 py-3 rounded-xl font-medium hover:bg-blue-800 transition">
           + Nueva Transferencia
         </button>
 
-        <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl shadow-sm">
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setAbierto(!abierto)}
+            className="flex items-center gap-3 bg-white px-4 py-3 rounded-xl shadow-sm min-w-72 hover:bg-gray-50 transition"
+          >
+            <img
+              src="https://i.pravatar.cc/80"
+              alt="perfil"
+              className="w-12 h-12 rounded-full object-cover"
+            />
 
-          <img
-            src="https://i.pravatar.cc/40"
-            alt="perfil"
-            className="w-10 h-10 rounded-full"
-          />
+            <div className="flex-1 text-left">
+              <p className="font-bold text-gray-900 leading-tight">
+                {nombre}
+              </p>
 
-          <div>
-            <h3 className="font-semibold">
-              {usuario.nombre}
-            </h3>
+              <p className="text-sm text-gray-500 capitalize">
+                {tipoCuenta} {numeroCuenta && `· ${numeroCuenta}`}
+              </p>
+            </div>
 
-            <p className="text-sm text-gray-500">
-              {usuario.tipoCuenta}
-            </p>
-          </div>
+            <ChevronDown
+              size={18}
+              className={`text-gray-500 transition ${
+                abierto ? "rotate-180" : ""
+              }`}
+            />
+          </button>
 
+          {abierto && (
+            <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100">
+                <p className="text-sm font-bold text-gray-900">
+                  Seleccionar cuenta
+                </p>
+                <p className="text-xs text-gray-500">
+                  Cambia la cuenta mostrada en el dashboard
+                </p>
+              </div>
+
+              <div className="max-h-72 overflow-y-auto">
+                {cuentas.length > 0 ? (
+                  cuentas.map((c) => (
+                    <button
+                      key={c.cuenta}
+                      type="button"
+                      onClick={() => cambiarCuenta(c.cuenta)}
+                      className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-blue-50 transition text-left"
+                    >
+                      <div>
+                        <p className="font-bold text-gray-900">
+                          {c.cliente}
+                        </p>
+
+                        <p className="text-sm text-gray-500 capitalize">
+                          {c.tipo} · {c.cuenta}
+                        </p>
+                      </div>
+
+                      {c.cuenta === cuentaActual && (
+                        <Check size={18} className="text-blue-700" />
+                      )}
+                    </button>
+                  ))
+                ) : (
+                  <p className="px-4 py-5 text-sm text-gray-500">
+                    No hay cuentas disponibles.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-
       </div>
-
     </div>
   );
 }

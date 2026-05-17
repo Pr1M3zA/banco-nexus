@@ -5,14 +5,21 @@ import {
   ArrowRightLeft,
   ChartColumn,
   User,
-  Settings,
-  CircleHelp,
 } from "lucide-react";
 
+import { NavLink } from "react-router-dom";
+
 export default function Sidebar() {
+  const linkClass = ({ isActive }) =>
+    `flex items-center gap-3 p-3 rounded-xl transition ${
+      isActive
+        ? "bg-blue-100 text-blue-700 font-medium"
+        : "text-gray-600 hover:bg-gray-100"
+    }`;
+
   return (
     <div className="w-64 h-screen bg-white border-r border-gray-200 flex flex-col justify-between p-5">
-
+      
       <div>
         <h1 className="text-2xl font-bold text-blue-700 mb-10">
           NEXUS
@@ -20,35 +27,35 @@ export default function Sidebar() {
 
         <nav className="flex flex-col gap-3">
 
-          <button className="flex items-center gap-3 bg-blue-100 text-blue-700 p-3 rounded-xl font-medium">
+          <NavLink to="/dashboard" className={linkClass}>
             <LayoutDashboard size={20} />
             Dashboard
-          </button>
+          </NavLink>
 
-          <button className="flex items-center gap-3 text-gray-600 hover:bg-gray-100 p-3 rounded-xl">
+          <NavLink to="/consulta" className={linkClass}>
             <Search size={20} />
             Consulta de Cuenta
-          </button>
+          </NavLink>
 
-          <button className="flex items-center gap-3 text-gray-600 hover:bg-gray-100 p-3 rounded-xl">
+          <NavLink to="/saldo" className={linkClass}>
             <Wallet size={20} />
             Saldo Actual
-          </button>
+          </NavLink>
 
-          <button className="flex items-center gap-3 text-gray-600 hover:bg-gray-100 p-3 rounded-xl">
+          <NavLink to="/movimientos" className={linkClass}>
             <ArrowRightLeft size={20} />
             Movimientos
-          </button>
+          </NavLink>
 
-          <button className="flex items-center gap-3 text-gray-600 hover:bg-gray-100 p-3 rounded-xl">
+          <NavLink to="/evolucion" className={linkClass}>
             <ChartColumn size={20} />
             Evolución
-          </button>
+          </NavLink>
 
-          <button className="flex items-center gap-3 text-gray-600 hover:bg-gray-100 p-3 rounded-xl">
+          <NavLink to="/cliente" className={linkClass}>
             <User size={20} />
             Datos Cliente
-          </button>
+          </NavLink>
 
         </nav>
       </div>

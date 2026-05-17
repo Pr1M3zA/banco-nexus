@@ -1,13 +1,24 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+
 import Dashboard from "./pages/Dashboard";
+import ConsultaCuenta from "./pages/ConsultaCuenta";
+import SaldoActual from "./pages/SaldoActual";
+import Movimientos from "./pages/Movimientos";
+import Evolucion from "./pages/Evolucion";
+import DatosCliente from "./pages/DatosCliente";
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        {/* Redireccionar cualquier otra ruta al Dashboard por ahora */}
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route path="/" element={<Navigate to="/dashboard" />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/consulta" element={<ConsultaCuenta />} />
+        <Route path="/saldo" element={<SaldoActual />} />
+        <Route path="/movimientos" element={<Movimientos />} />
+        <Route path="/evolucion" element={<Evolucion />} />
+        <Route path="/cliente" element={<DatosCliente />} />
+        <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
     </Router>
   );
