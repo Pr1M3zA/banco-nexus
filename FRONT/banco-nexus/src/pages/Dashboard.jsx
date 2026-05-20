@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   Wallet,
   ArrowUp,
@@ -22,14 +23,115 @@ import {
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 
-import {
-  usuario,
-  resumenCuenta,
-  movimientos,
-  evolucionSaldo,
-} from "../data/mockData";
-
 export default function Dashboard() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const [usuario, setUsuario] = useState({ nombre: "", tipoCuenta: "" });
+  const [resumenCuenta, setResumenCuenta] = useState({
+    saldo: 0,
+    ingresos: 0,
+    egresos: 0,
+    variacion: 0,
+  });
+  const [movimientos, setMovimientos] = useState([]);
+  const [evolucionSaldo, setEvolucionSaldo] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const resCuentas = await fetch("http://localhost:3001/api/cuentas");
+        if (!resCuentas.ok) throw new Error("Error al obtener cuentas");
+        const cuentasData = await resCuentas.json();
+        
+        if (cuentasData.length === 0) throw new Error("No hay cuentas disponibles");
+        const numeroCuenta = cuentasData[0].cuenta;
+
+        const [resCuenta, resHistorial] = await Promise.all([
+          fetch(`http://localhost:3001/api/cuenta/${numeroCuenta}`),
+          fetch(`http://localhost:3001/api/historial/${numeroCuenta}`)
+        ]);
+
+        if (!resCuenta.ok) throw new Error("Error al obtener detalles de la cuenta");
+        const dataCuenta = await resCuenta.json();
+        
+        let dataHistorial = { movimientos: [] };
+        if (resHistorial.ok) {
+          dataHistorial = await resHistorial.json();
+        }
+
+        setUsuario({
+          nombre: dataCuenta.cliente?.nombre || "Usuario",
+          tipoCuenta: dataCuenta.cuenta?.tipo || "Cuenta",
+        });
+
+        const movs = dataHistorial.movimientos || [];
+        
+        const ingresos = movs.filter(m => m.tipo === 'deposito').reduce((acc, m) => acc + m.monto, 0);
+        const egresos = movs.filter(m => m.tipo === 'retiro').reduce((acc, m) => acc + m.monto, 0);
+        
+        setResumenCuenta({
+          saldo: dataCuenta.cuenta.saldo,
+          ingresos: ingresos,
+          egresos: egresos,
+          variacion: 2.5,
+        });
+
+        const movsFormateados = movs.slice(0, 5).map(m => ({
+          concepto: m.concepto,
+          fecha: new Date(m.fecha).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }),
+          tipo: m.tipo === 'deposito' ? 'Depósito' : 'Retiro',
+          monto: m.tipo === 'retiro' ? -m.monto : m.monto
+        }));
+        setMovimientos(movsFormateados);
+
+        let saldoEvolucion = dataCuenta.cuenta.saldo;
+        const evolucion = [{ fecha: "Hoy", saldo: saldoEvolucion }];
+        
+        movs.slice(0, 5).forEach(m => {
+          saldoEvolucion = saldoEvolucion - (m.tipo === 'deposito' ? m.monto : -m.monto);
+          evolucion.unshift({
+            fecha: new Date(m.fecha).toLocaleDateString("es-MX", { day: "numeric", month: "short" }),
+            saldo: saldoEvolucion
+          });
+        });
+        setEvolucionSaldo(evolucion);
+
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex bg-gray-100 min-h-screen">
+        <Sidebar />
+        <main className="flex-1 p-10 flex items-center justify-center">
+          <p className="text-2xl text-gray-500 font-semibold">Cargando Dashboard...</p>
+        </main>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex bg-gray-100 min-h-screen">
+        <Sidebar />
+        <main className="flex-1 p-10 flex items-center justify-center">
+          <div className="bg-red-50 text-red-700 p-6 rounded-3xl text-center">
+            <h2 className="text-2xl font-bold mb-2">Error</h2>
+            <p>{error}</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex bg-gray-100 min-h-screen">
       <Sidebar />
