@@ -1,5 +1,32 @@
 use("BancoNexus");
 
+// Detectar y redirigir al nodo primario en caso de estar en un Replica Set
+const getHelloStatus = () => {
+  if (typeof db.hello === "function") {
+    return db.hello();
+  }
+  if (typeof db.isMaster === "function") {
+    return db.isMaster();
+  }
+  return db.runCommand({ hello: 1 });
+};
+
+const hello = getHelloStatus();
+if (hello.setName) {
+  const isPrimary = hello.isWritablePrimary || hello.ismaster;
+  if (!isPrimary) {
+    if (!hello.primary) {
+      throw new Error("El Replica Set no tiene un nodo primario activo o accesible.");
+    }
+    print(`[Replica Set] Conectado a un nodo SECUNDARIO. Redirigiendo operaciones al nodo PRIMARIO: ${hello.primary}`);
+    db = new Mongo(hello.primary).getDB("BancoNexus");
+  } else {
+    print("[Replica Set] Conectado directamente al nodo PRIMARIO.");
+  }
+} else {
+  print("[Standalone] Conectado a una instancia independiente.");
+}
+
 db.clientes.drop();
 db.cuentas.drop();
 db.transacciones.drop();
