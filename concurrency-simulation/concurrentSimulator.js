@@ -5,14 +5,14 @@ async function runSimulation() {
     console.log("Starting concurrency simulation for Banco Nexus...");
 
     // NOTA: Cambia 'NX1001' por cualquier número de cuenta real que exista en tu BD local
-    const targetAccount = 'NX01001';
-
+    const targetAccount = 'NX01001'; 
+    
     // Create 5 parallel actions targeting the SAME account
     const operations = [
         registerTransaction(targetAccount, 100, 'deposito', 'CDMX Branch'),
         registerTransaction(targetAccount, 200, 'deposito', 'GDL Branch'),
         registerTransaction(targetAccount, 300, 'deposito', 'MTY Branch'),
-        registerTransaction(targetAccount, 50, 'retiro', 'TIJ Branch'),
+        registerTransaction(targetAccount, 50,  'retiro',   'QRO Branch'),
         registerTransaction(targetAccount, 150, 'deposito', 'CUN Branch')
     ];
 
