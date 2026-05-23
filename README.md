@@ -51,7 +51,7 @@ Esta prueba inyecta 5 operaciones (depósitos y retiros) desde distintas sucursa
 
 **Requisitos previos:**
 1. Asegúrate de tener tu servidor local de MongoDB corriendo.
-2. Debes tener la base de datos `banco_nexus` inicializada con el script base para que exista al menos una cuenta (ej. `NX1001`).
+2. Debes tener la base de datos `BancoNexus` inicializada con el script base para que exista al menos una cuenta (ej. `NX01001`).
 
 **Ejecución:**
 Abre tu terminal en la raíz del proyecto y ejecuta el siguiente script:

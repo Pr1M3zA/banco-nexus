@@ -6,7 +6,7 @@ const registerTransaction = async (account, amount, type, branch) => {
 
     try {
         await client.connect();
-        const db = client.db('banco_nexus');
+        const db = client.db('BancoNexus');
         const transactions = db.collection('transacciones');
         const accounts = db.collection('cuentas');
 
