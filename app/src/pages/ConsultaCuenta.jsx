@@ -1,7 +1,8 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { useLocation } from "react-router-dom";
+import { fetchConAlerta } from "../utils/fetchConAlerta";
 import {
   Search,
   User,
@@ -46,6 +47,21 @@ export default function ConsultaCuenta() {
     type: "",
     message: "",
   });
+
+  // ── Alerta latencia / nodo (separada de las operaciones) ────────────────────
+  const [alertaLatencia, setAlertaLatencia] = useState({ type: "", message: "" });
+
+  const registrarAlerta = useCallback((alerta) => {
+    if (!alerta) return;
+    const type  = alerta.tipo === "error" ? "error" : "warning";
+    const label = alerta.tipo === "error"
+      ? "🔴 Nodo primario — " + alerta.mensaje
+      : "⚠️ Latencia — " + alerta.mensaje;
+    setAlertaLatencia((prev) => {
+      if (prev.type === "error" && type === "warning") return prev;
+      return { type, message: label };
+    });
+  }, []);
 
   useEffect(() => {
     if (location.state?.origin === "transferencia") {
@@ -94,9 +110,11 @@ export default function ConsultaCuenta() {
     setLoading(true);
 
     try {
-      const resCuenta = await fetch(
+      const { res: resCuenta, alerta: a1 } = await fetchConAlerta(
         `http://localhost:3001/api/cuenta/${cuenta}`
       );
+      registrarAlerta(a1);
+      if (!resCuenta) throw new Error("Sin conexión con el servidor.");
       const dataCuenta = await resCuenta.json();
 
       if (!resCuenta.ok) {
@@ -107,18 +125,12 @@ export default function ConsultaCuenta() {
 
       setDatosCuenta(dataCuenta);
 
-      const resHistorial = await fetch(
+      const { res: resHistorial, alerta: a2 } = await fetchConAlerta(
         `http://localhost:3001/api/historial/${cuenta}`
       );
+      registrarAlerta(a2);
+      if (!resHistorial || !resHistorial.ok) throw new Error("No se pudo cargar el historial.");
       const dataHistorial = await resHistorial.json();
-
-      if (!resHistorial.ok) {
-        throw new Error(
-          dataHistorial.error ||
-          dataHistorial.mensaje ||
-          "No se pudo cargar el historial."
-        );
-      }
 
       const listaMovimientos = Array.isArray(dataHistorial)
         ? dataHistorial
@@ -346,6 +358,13 @@ export default function ConsultaCuenta() {
             Ingresa el número de cuenta para consultar la información bancaria.
           </p>
         </div>
+
+        {/* Banner latencia / nodo — encima del form */}
+        <AlertMessage
+          type={alertaLatencia.type}
+          message={alertaLatencia.message}
+          onClose={() => setAlertaLatencia({ type: "", message: "" })}
+        />
 
         <AlertMessage
           type={alerta.type}

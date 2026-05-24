@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { Wallet, ArrowUp, ArrowDown } from "lucide-react";
 import {
   LineChart,
@@ -12,6 +12,8 @@ import {
 
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
+import AlertMessage from "../components/AlertMessage";
+import { fetchConAlerta } from "../utils/fetchConAlerta";
 
 export default function Dashboard() {
   const cuentaInicial = "NX01001";
@@ -24,6 +26,28 @@ export default function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
 
+  // ── Alerta latencia / nodo ─────────────────────────────────────────────────
+  const [alertaLatencia, setAlertaLatencia] = useState({ type: "", message: "" });
+
+  // Estado del nodo: 'ok' | 'lento' | 'caido'
+  const [estadoNodo, setEstadoNodo] = useState("ok");
+
+  const registrarAlerta = useCallback((alerta) => {
+    if (!alerta) return;
+    const type  = alerta.tipo === "error" ? "error" : "warning";
+    const label = alerta.tipo === "error"
+      ? "🔴 Nodo primario — " + alerta.mensaje
+      : "⚠️ Latencia — " + alerta.mensaje;
+    setAlertaLatencia((prev) => {
+      // error no es reemplazado por warning
+      if (prev.type === "error" && type === "warning") return prev;
+      return { type, message: label };
+    });
+    setEstadoNodo((prev) =>
+      alerta.tipo === "error" ? "caido" : prev === "ok" ? "lento" : prev
+    );
+  }, []);
+
   const obtenerSaldo = () => datosCuenta?.cuenta?.saldo ?? 0;
   const obtenerNombreCliente = () =>
     datosCuenta?.cliente?.nombre || "Usuario";
@@ -34,7 +58,9 @@ export default function Dashboard() {
 
   const cargarCuentas = async () => {
     try {
-      const res = await fetch("http://localhost:3001/api/cuentas");
+      const { res, alerta } = await fetchConAlerta("http://localhost:3001/api/cuentas");
+      registrarAlerta(alerta);
+      if (!res) throw new Error("Sin conexión");
       const data = await res.json();
       const lista = Array.isArray(data) ? data : [];
       setCuentas(lista);
@@ -54,15 +80,22 @@ export default function Dashboard() {
     setLoading(true);
 
     try {
-      const resCuenta = await fetch(`http://localhost:3001/api/cuenta/${cuenta}`);
+      const { res: resCuenta, alerta: a1 } = await fetchConAlerta(
+        `http://localhost:3001/api/cuenta/${cuenta}`
+      );
+      registrarAlerta(a1);
+      if (!resCuenta) throw new Error("Sin conexión al servidor");
       const dataCuenta = await resCuenta.json();
 
       if (!resCuenta.ok) {
         throw new Error(dataCuenta.mensaje || "No se pudo cargar la cuenta");
       }
 
-      const resHistorial = await fetch(`http://localhost:3001/api/historial/${cuenta}`);
-      const dataHistorial = await resHistorial.json();
+      const { res: resHistorial, alerta: a2 } = await fetchConAlerta(
+        `http://localhost:3001/api/historial/${cuenta}`
+      );
+      registrarAlerta(a2);
+      const dataHistorial = resHistorial ? await resHistorial.json() : { movimientos: [] };
 
       const listaMovimientos = Array.isArray(dataHistorial)
         ? dataHistorial
@@ -162,6 +195,13 @@ export default function Dashboard() {
     );
   }
 
+  // Indicador nodo
+  const nodoBadge = {
+    ok:    { dot: "bg-green-500", label: "Nodo primario OK"  },
+    lento: { dot: "bg-amber-400", label: "Latencia elevada"  },
+    caido: { dot: "bg-red-500",   label: "Nodo caído"        },
+  }[estadoNodo];
+
   return (
     <div className="flex bg-gray-100 min-h-screen">
       <Sidebar />
@@ -175,6 +215,19 @@ export default function Dashboard() {
           cuentas={cuentas}
           cuentaActual={cuentaActual}
           onCambiarCuenta={setCuentaActual}
+        />
+
+        {/* Indicador estado nodo */}
+        <div className="flex items-center gap-2 mb-3 text-sm text-gray-500 font-medium">
+          <span className={`w-2.5 h-2.5 rounded-full shadow ${nodoBadge.dot}`} />
+          {nodoBadge.label}
+        </div>
+
+        {/* Banner latencia / nodo */}
+        <AlertMessage
+          type={alertaLatencia.type}
+          message={alertaLatencia.message}
+          onClose={() => setAlertaLatencia({ type: "", message: "" })}
         />
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
