@@ -13,11 +13,8 @@ app.use(cors());
 // Configuración MongoDB Replica Set
 // ─────────────────────────────────────────────────────────────
 
-const URI =
-  process.env.MONGO_URI ||
-  'mongodb://localhost:27017,localhost:27018,localhost:27019/BancoNexus?replicaSet=rsBanco';
-
-const DB_NAME = 'BancoNexus';
+const URI = process.env.MONGO_URI || 'mongodb://localhost:27017';
+const DB_NAME = process.env.DB_NAME || 'banco_nexus';
 
 let db;
 let client;
