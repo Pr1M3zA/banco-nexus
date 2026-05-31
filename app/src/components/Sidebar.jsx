@@ -36,10 +36,7 @@ export default function Sidebar() {
             Consulta de Cuenta
           </NavLink>
 
-          <NavLink to="/saldo" className={linkClass}>
-            <Wallet size={20} />
-            Saldo Actual
-          </NavLink>
+
 
           <NavLink to="/movimientos" className={linkClass}>
             <ArrowRightLeft size={20} />

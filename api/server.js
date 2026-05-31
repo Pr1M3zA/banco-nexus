@@ -148,11 +148,11 @@ app.get('/api/cuenta/:cuenta', async (req, res) => {
       },
       cliente: clienteDoc
         ? {
-            nombre: clienteDoc.nombre,
-            curp: clienteDoc.curp,
-            correo: clienteDoc.correo,
-            telefono: clienteDoc.telefono,
-          }
+          nombre: clienteDoc.nombre,
+          curp: clienteDoc.curp,
+          correo: clienteDoc.correo,
+          telefono: clienteDoc.telefono,
+        }
         : null,
     });
   } catch (error) {

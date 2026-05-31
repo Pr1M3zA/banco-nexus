@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Wallet, ArrowUp, ArrowDown } from "lucide-react";
+import { Wallet, ArrowUp, ArrowDown, Activity } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -62,7 +62,7 @@ export default function Dashboard() {
       registrarAlerta(alerta);
       if (!res) throw new Error("Sin conexión");
       const data = await res.json();
-      const lista = Array.isArray(data) ? data : [];
+      const lista = data.cuentas && Array.isArray(data.cuentas) ? data.cuentas : [];
       setCuentas(lista);
       const cuentaGuardada = localStorage.getItem("cuentaActual");
       if (!cuentaGuardada && lista.length > 0) {
@@ -215,13 +215,8 @@ export default function Dashboard() {
           cuentas={cuentas}
           cuentaActual={cuentaActual}
           onCambiarCuenta={setCuentaActual}
+          estadoNodo={estadoNodo}
         />
-
-        {/* Indicador estado nodo */}
-        <div className="flex items-center gap-2 mb-3 text-sm text-gray-500 font-medium">
-          <span className={`w-2.5 h-2.5 rounded-full shadow ${nodoBadge.dot}`} />
-          {nodoBadge.label}
-        </div>
 
         {/* Banner latencia / nodo */}
         <AlertMessage
@@ -231,51 +226,102 @@ export default function Dashboard() {
         />
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <section className="xl:col-span-2 bg-blue-700 rounded-3xl p-8 text-white shadow-sm">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="bg-white/20 p-4 rounded-2xl">
-                <Wallet size={28} />
+          <div className="xl:col-span-2 space-y-6">
+            {/* Tarjeta de Saldo Disponible Compacta y Premium */}
+            <section className="bg-gradient-to-br from-blue-700 to-indigo-900 rounded-3xl p-6 text-white shadow-xl shadow-blue-100/50 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="bg-white/10 p-3 rounded-2xl border border-white/10">
+                  <Wallet size={24} className="text-blue-200" />
+                </div>
+                <div>
+                  <p className="text-blue-100/80 text-xs font-semibold uppercase tracking-wider">Saldo Disponible</p>
+                  <h2 className="text-3xl font-black mt-1 leading-none tracking-tight">
+                    ${obtenerSaldo().toLocaleString("es-MX", {
+                      minimumFractionDigits: 2,
+                    })}
+                  </h2>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-blue-200 font-bold uppercase tracking-widest">Cuenta Activa</p>
+                <p className="font-bold text-sm text-white mt-1">{obtenerNumeroCuenta()}</p>
+              </div>
+            </section>
+
+            {/* Módulos de Métricas Desacoplados (Limpios, no redundantes) */}
+            <div className="grid grid-cols-3 gap-5">
+              <div className="bg-white rounded-2xl p-4 border border-slate-200/50 shadow-sm flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                  <ArrowUp size={16} />
+                </div>
+                <div>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Ingresos</p>
+                  <p className="font-bold text-emerald-600 text-sm mt-0.5">
+                    +${ingresos.toLocaleString("es-MX")}
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <p className="text-blue-100">Saldo Disponible</p>
-                <h2 className="text-4xl font-bold">
-                  ${obtenerSaldo().toLocaleString("es-MX", {
-                    minimumFractionDigits: 2,
-                  })}
-                </h2>
-                <p className="text-blue-100 text-sm mt-1">
-                  Cuenta {obtenerNumeroCuenta()}
-                </p>
+              <div className="bg-white rounded-2xl p-4 border border-slate-200/50 shadow-sm flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-rose-50 text-rose-600">
+                  <ArrowDown size={16} />
+                </div>
+                <div>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Egresos</p>
+                  <p className="font-bold text-rose-600 text-sm mt-0.5">
+                    -${egresos.toLocaleString("es-MX")}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-4 border border-slate-200/50 shadow-sm flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
+                  <Activity size={16} />
+                </div>
+                <div>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Operaciones</p>
+                  <p className="font-bold text-amber-600 text-sm mt-0.5">
+                    {movimientos.length} movs
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-5 mt-8">
-              <div className="bg-white/15 rounded-2xl p-5">
-                <p className="text-green-300 font-bold">
-                  ↑ +${ingresos.toLocaleString("es-MX")}
-                </p>
-                <p className="text-sm text-blue-100">Ingresos registrados</p>
-              </div>
+            {/* Evolución del Saldo agrupado dentro de la columna izquierda (Cero espacios vacíos) */}
+            <section className="bg-white rounded-3xl p-6 shadow-sm border border-slate-150">
+              <h2 className="font-bold text-xl text-slate-800">Evolución del Saldo</h2>
+              <p className="text-sm text-gray-500 mb-6">
+                Datos obtenidos desde la API
+              </p>
 
-              <div className="bg-white/15 rounded-2xl p-5">
-                <p className="text-red-300 font-bold">
-                  ↓ -${egresos.toLocaleString("es-MX")}
-                </p>
-                <p className="text-sm text-blue-100">Egresos registrados</p>
+              <div className="h-80">
+                {chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="fecha" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="saldo"
+                        stroke="#1d4ed8"
+                        strokeWidth={4}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-gray-500">
+                    No hay suficientes movimientos para generar gráfica.
+                  </div>
+                )}
               </div>
+            </section>
+          </div>
 
-              <div className="bg-white/15 rounded-2xl p-5">
-                <p className="text-yellow-300 font-bold">
-                  {movimientos.length}
-                </p>
-                <p className="text-sm text-blue-100">Movimientos</p>
-              </div>
-            </div>
-          </section>
-
-          <section className="bg-white rounded-3xl p-6 shadow-sm">
-            <h2 className="font-bold text-xl mb-6">Últimos Movimientos</h2>
+          {/* Últimos movimientos a la derecha (Alineado verticalmente de forma limpia) */}
+          <section className="bg-white rounded-3xl p-6 shadow-sm border border-slate-150 self-start">
+            <h2 className="font-bold text-xl mb-6 text-slate-800">Últimos Movimientos</h2>
 
             <div className="space-y-5">
               {movimientos.length > 0 ? (
@@ -296,19 +342,19 @@ export default function Dashboard() {
                       </div>
 
                       <div>
-                        <h3 className="font-bold">{movimiento.concepto}</h3>
-                        <p className="text-sm text-gray-500">
+                        <h3 className="font-bold text-slate-850 text-sm">{movimiento.concepto}</h3>
+                        <p className="text-xs text-slate-400">
                           {new Date(movimiento.fecha).toLocaleDateString("es-MX")} ·{" "}
-                          {movimiento.tipo}
+                          <span className="capitalize">{movimiento.tipo}</span>
                         </p>
-                        <span className="inline-block mt-1 bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase">
+                        <span className="inline-block mt-2 bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
                           {movimiento.sucursal || "Sin sucursal"}
                         </span>
                       </div>
                     </div>
 
                     <p
-                      className={`font-bold ${movimiento.tipo === "deposito"
+                      className={`font-bold text-sm ${movimiento.tipo === "deposito"
                           ? "text-green-600"
                           : "text-red-600"
                         }`}
@@ -322,36 +368,6 @@ export default function Dashboard() {
                 <p className="text-gray-500 text-sm">
                   No hay movimientos registrados.
                 </p>
-              )}
-            </div>
-          </section>
-
-          <section className="xl:col-span-2 bg-white rounded-3xl p-6 shadow-sm">
-            <h2 className="font-bold text-xl">Evolución del Saldo</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              Datos obtenidos desde la API
-            </p>
-
-            <div className="h-80">
-              {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="fecha" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="saldo"
-                      stroke="#1d4ed8"
-                      strokeWidth={4}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex items-center justify-center text-gray-500">
-                  No hay suficientes movimientos para generar gráfica.
-                </div>
               )}
             </div>
           </section>

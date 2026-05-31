@@ -14,15 +14,6 @@ import {
   ArrowUpCircle,
   ArrowDownCircle,
 } from "lucide-react";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
 import AlertMessage from "../components/AlertMessage";
 
 export default function ConsultaCuenta() {
@@ -37,6 +28,7 @@ export default function ConsultaCuenta() {
   const [monto, setMonto] = useState("");
   const [filtro, setFiltro] = useState("todo");
   const [sucursal, setSucursal] = useState("Sucursal Digital");
+  const [listaCuentas, setListaCuentas] = useState([]);
 
   const [alerta, setAlerta] = useState({
     type: "",
@@ -75,6 +67,20 @@ export default function ConsultaCuenta() {
       window.history.replaceState({}, document.title);
     }
   }, [location]);
+
+  useEffect(() => {
+    const cargarListaCuentas = async () => {
+      try {
+        const res = await fetch("http://localhost:3001/api/cuentas");
+        const data = await res.json();
+        const lista = data.cuentas && Array.isArray(data.cuentas) ? data.cuentas : [];
+        setListaCuentas(lista);
+      } catch (error) {
+        console.error("Error cargando cuentas para el dropdown:", error);
+      }
+    };
+    cargarListaCuentas();
+  }, []);
   const obtenerNumeroCuenta = () => {
     return datosCuenta?.cuenta?.numeroCuenta || datosCuenta?.cuenta;
   };
@@ -84,7 +90,12 @@ export default function ConsultaCuenta() {
   };
 
   const obtenerTipoCuenta = () => {
-    return datosCuenta?.cuenta?.tipo || datosCuenta?.tipo || "";
+    const raw = datosCuenta?.cuenta?.tipo || datosCuenta?.tipo || "";
+    const t = raw.toLowerCase();
+    if (t === "ahorro") return "Ahorro";
+    if (t === "nomina") return "Nómina";
+    if (t === "corriente") return "Crédito";
+    return raw;
   };
 
   const obtenerNombreCliente = () => {
@@ -172,77 +183,7 @@ export default function ConsultaCuenta() {
     return movimientos.filter((tx) => new Date(tx.fecha) >= limitDate);
   }, [movimientos, filtro]);
 
-  const chartData = useMemo(() => {
-    if (!datosCuenta || movimientos.length === 0) return [];
 
-    const saldoActual = obtenerSaldo();
-
-    const sortedMovs = [...movimientos].sort(
-      (a, b) => new Date(a.fecha) - new Date(b.fecha)
-    );
-
-    const totalDepositos = movimientos.reduce(
-      (acc, curr) => (curr.tipo === "deposito" ? acc + Number(curr.monto) : acc),
-      0
-    );
-
-    const totalRetiros = movimientos.reduce(
-      (acc, curr) =>
-        curr.tipo !== "deposito" ? acc + Math.abs(Number(curr.monto)) : acc,
-      0
-    );
-
-    let runningBalance = saldoActual - totalDepositos + totalRetiros;
-
-    const points = [];
-
-    // Agregar punto inicial de Apertura con la fecha de apertura real de la cuenta
-    const fechaAperturaRaw = datosCuenta?.cuenta?.fechaApertura || datosCuenta?.fechaApertura;
-    if (fechaAperturaRaw) {
-      const fechaApertura = new Date(fechaAperturaRaw);
-      points.push({
-        label: fechaApertura.toLocaleDateString("es-MX", {
-          day: "2-digit",
-          month: "short",
-        }),
-        saldo: runningBalance,
-        timestamp: fechaApertura.getTime(),
-      });
-    } else if (sortedMovs.length > 0) {
-      const fechaPrimerMov = new Date(sortedMovs[0].fecha);
-      const fechaAperturaFallback = new Date(fechaPrimerMov.getTime() - 24 * 60 * 60 * 1000);
-      points.push({
-        label: "Apertura",
-        saldo: runningBalance,
-        timestamp: fechaAperturaFallback.getTime(),
-      });
-    }
-
-    sortedMovs.forEach((tx) => {
-      if (tx.tipo === "deposito") runningBalance += Number(tx.monto);
-      else runningBalance -= Math.abs(Number(tx.monto));
-
-      const date = new Date(tx.fecha);
-
-      points.push({
-        label: date.toLocaleDateString("es-MX", {
-          day: "2-digit",
-          month: "short",
-        }),
-        saldo: runningBalance,
-        timestamp: date.getTime(),
-      });
-    });
-
-    const now = new Date();
-    let limitDate = new Date(0);
-
-    if (filtro === "semana") limitDate.setDate(now.getDate() - 7);
-    else if (filtro === "mes") limitDate.setMonth(now.getMonth() - 1);
-    else if (filtro === "anual") limitDate.setFullYear(now.getFullYear() - 1);
-
-    return points.filter((p) => p.timestamp >= limitDate.getTime());
-  }, [movimientos, datosCuenta, filtro]);
 
   const handleOperacion = async (tipo) => {
     setAlertaOperacion({ type: "", message: "" });
@@ -342,21 +283,26 @@ export default function ConsultaCuenta() {
     <div className="flex bg-gray-50 min-h-screen font-sans text-slate-900">
       <Sidebar />
 
-      <main className="flex-1 p-8">
-        <Navbar
-          usuario={{
-            nombre: obtenerNombreCliente(),
-            tipoCuenta: obtenerTipoCuenta(),
-          }}
-        />
-
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-800">
-            Consulta de Cuenta
-          </h1>
-          <p className="text-slate-500 text-sm">
-            Ingresa el número de cuenta para consultar la información bancaria.
-          </p>
+      <main className="flex-1 p-8 overflow-y-auto">
+        {/* Encabezado Personalizado y Limpio (Sin Redundancia de Welcome ni Selector) */}
+        <div className="flex justify-between items-center mb-8 border-b border-slate-100 pb-5">
+          <div>
+            <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+              Terminal de Operaciones
+            </span>
+            <h1 className="text-3xl font-black text-slate-800 mt-2 tracking-tight">
+              Caja & Consulta Bancaria
+            </h1>
+          </div>
+          <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
+            <div className="w-9 h-9 rounded-full bg-blue-700/10 flex items-center justify-center text-blue-700 font-black text-sm">
+              C1
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-800 leading-tight">Caja Nexus Digital</p>
+              <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Operador Activo</p>
+            </div>
+          </div>
         </div>
 
         {/* Banner latencia / nodo — encima del form */}
@@ -378,12 +324,42 @@ export default function ConsultaCuenta() {
               Número de Cuenta
             </label>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              {listaCuentas.length > 0 && (
+                <select
+                  onChange={(e) => {
+                    const selected = e.target.value;
+                    if (selected) {
+                      setNumeroCuentaInput(selected);
+                      fetchDatos(selected);
+                    }
+                  }}
+                  value={numeroCuentaInput}
+                  className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-600 transition text-slate-700 font-bold max-w-xs"
+                >
+                  <option value="">Seleccionar cuenta rápida...</option>
+                  {listaCuentas.map((c) => {
+                    const raw = c.cuenta || "";
+                    const tipoCta = (c.tipo || "").toLowerCase() === "corriente" ? "Crédito" : (c.tipo || "").toLowerCase() === "ahorro" ? "Ahorro" : "Nómina";
+                    return (
+                      <option key={raw} value={raw}>
+                        {c.cliente} ({tipoCta} · {raw})
+                      </option>
+                    );
+                  })}
+                </select>
+              )}
+
               <input
                 ref={inputRef}
                 type="text"
                 placeholder="NX01001"
                 value={numeroCuentaInput}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    fetchDatos(numeroCuentaInput);
+                  }
+                }}
                 onChange={(e) => setNumeroCuentaInput(e.target.value)}
                 className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-600 transition text-slate-700"
               />
@@ -421,69 +397,58 @@ export default function ConsultaCuenta() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-blue-50/50 rounded-2xl p-6 border border-blue-100/50">
-                <div className="flex items-center gap-3 mb-6">
-                  <User className="text-blue-600" size={18} />
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                    Cliente
-                  </span>
+            {/* Ficha de Cuenta Bancaria en Formato Horizontal Único (Cero Redundancia) */}
+            <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex flex-col lg:flex-row justify-between items-stretch gap-8">
+              {/* Left Column: Client Profile Info */}
+              <div className="flex-grow flex items-center gap-5">
+                <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center flex-shrink-0 text-xl font-bold border border-blue-100">
+                  {obtenerNombreCliente().split(" ").map(n => n[0]).slice(0, 2).join("")}
                 </div>
-
                 <div>
-                  <p className="text-xs text-slate-400 mb-1">Nombre</p>
-                  <p className="text-sm font-bold text-slate-800 mb-3">
+                  <span className="text-[9px] bg-blue-50 text-blue-700 font-bold px-2.5 py-0.5 rounded uppercase tracking-wider">
+                    Titular Autorizado
+                  </span>
+                  <h3 className="text-lg font-bold text-slate-800 mt-1 leading-tight">
                     {obtenerNombreCliente()}
-                  </p>
-
-                  <p className="text-xs text-slate-400 mb-1">Correo</p>
-                  <p className="text-sm font-bold text-slate-800">
-                    {obtenerCorreoCliente() || "Correo no registrado"}
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium mt-1">
+                    {obtenerCorreoCliente() || "Sin correo registrado"}
                   </p>
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <Wallet className="text-blue-600" size={18} />
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                    Cuenta
+              {/* Center Column: Bank Details Divider */}
+              <div className="hidden lg:block w-[1px] bg-slate-100" />
+
+              {/* Middle Column: Account Specifications */}
+              <div className="flex-grow flex flex-col justify-center gap-3">
+                <div className="flex justify-between items-center text-xs gap-4">
+                  <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Número Cuenta</span>
+                  <span className="font-bold text-slate-800 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
+                    {obtenerNumeroCuenta()}
                   </span>
                 </div>
-
-                <div>
-                  <p className="text-xs text-slate-400 mb-1">
-                    Número de cuenta
-                  </p>
-                  <p className="text-sm font-bold text-slate-800 mb-3">
-                    {obtenerNumeroCuenta()}
-                  </p>
-
-                  <p className="text-xs text-slate-400 mb-1">Tipo</p>
-                  <p className="text-sm font-bold text-slate-800 capitalize">
+                <div className="flex justify-between items-center text-xs gap-4">
+                  <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Tipo de Producto</span>
+                  <span className="font-bold text-slate-800 capitalize bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
                     {obtenerTipoCuenta()}
-                  </p>
+                  </span>
                 </div>
               </div>
 
-              <div className="bg-blue-700 rounded-2xl p-6 text-white shadow-lg shadow-blue-200 flex flex-col justify-between">
+              {/* Right Column: Divided Capital Card (High Visual UI Value!) */}
+              <div className="w-full lg:w-72 bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl p-6 text-white flex flex-col justify-between shadow-md">
                 <div>
-                  <p className="text-xs text-blue-100/80 mb-1 uppercase tracking-widest font-medium">
-                    Saldo Disponible
-                  </p>
-
-                  <h3 className="text-3xl font-black mb-1">
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Saldo Disponible</p>
+                  <h4 className="text-2xl font-black mt-1 text-white tracking-tight">
                     ${obtenerSaldo().toLocaleString("es-MX", {
                       minimumFractionDigits: 2,
                     })}
-                  </h3>
+                  </h4>
                 </div>
-
-                <div className="mt-4 pt-4 border-t border-white/10">
-                  <p className="text-[10px] text-blue-100/60 uppercase tracking-widest font-bold mb-1">
-                    Estado
-                  </p>
-                  <span className="text-xs font-bold bg-white/20 px-2 py-0.5 rounded-md">
+                <div className="flex justify-between items-center mt-4 pt-4 border-t border-white/5 text-[10px]">
+                  <span className="text-slate-500 font-bold uppercase tracking-widest">Estado</span>
+                  <span className="font-bold bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded uppercase tracking-widest text-[8px] border border-emerald-500/20">
                     Activo
                   </span>
                 </div>
@@ -559,122 +524,6 @@ export default function ConsultaCuenta() {
                   <ArrowDownCircle size={18} />
                   {operacionLoading ? "Procesando..." : "Retirar"}
                 </button>
-              </div>
-            </section>
-
-            <section className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 flex flex-col min-h-[400px]">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-800 tracking-tight">
-                    Evolución de Saldo
-                  </h2>
-                  <p className="text-slate-400 text-sm font-medium">
-                    Análisis temporal del comportamiento de tu cuenta
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">
-                    Saldo Actual
-                  </p>
-                  <h3 className="text-3xl font-black text-blue-600">
-                    ${obtenerSaldo().toLocaleString("es-MX", {
-                      minimumFractionDigits: 2,
-                    })}
-                  </h3>
-                </div>
-              </div>
-
-              <div className="flex-1 w-full">
-                <ResponsiveContainer width="100%" height={250}>
-                  <AreaChart data={chartData}>
-                    <defs>
-                      <linearGradient
-                        id="colorSaldo"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="#2563eb"
-                          stopOpacity={0.15}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="#2563eb"
-                          stopOpacity={0.01}
-                        />
-                      </linearGradient>
-                    </defs>
-
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                      stroke="#f1f5f9"
-                    />
-
-                    <XAxis
-                      dataKey="label"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{
-                        fill: "#94a3b8",
-                        fontSize: 10,
-                        fontWeight: 600,
-                      }}
-                      dy={10}
-                    />
-
-                    <YAxis hide domain={["auto", "auto"]} />
-
-                    <Tooltip
-                      contentStyle={{
-                        borderRadius: "16px",
-                        border: "none",
-                        boxShadow:
-                          "0 20px 25px -5px rgb(0 0 0 / 0.1)",
-                        padding: "12px",
-                      }}
-                      formatter={(value) => [
-                        `$${value.toLocaleString()}`,
-                        "Saldo",
-                      ]}
-                    />
-
-                    <Area
-                      type="monotone"
-                      dataKey="saldo"
-                      stroke="#2563eb"
-                      strokeWidth={4}
-                      fillOpacity={1}
-                      fill="url(#colorSaldo)"
-                      animationDuration={1500}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="flex justify-center mt-6 gap-2">
-                {["semana", "mes", "anual", "todo"].map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setFiltro(p)}
-                    className={`px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${filtro === p
-                      ? "bg-blue-600 text-white shadow-lg shadow-blue-200 scale-105"
-                      : "text-slate-400 hover:bg-slate-50"
-                      }`}
-                  >
-                    {p === "semana"
-                      ? "Semanal"
-                      : p === "mes"
-                        ? "Mensual"
-                        : p === "anual"
-                          ? "Anual"
-                          : "Todo"}
-                  </button>
-                ))}
               </div>
             </section>
 

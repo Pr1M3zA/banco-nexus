@@ -8,6 +8,7 @@ export default function Navbar({
   cuentas = [],
   cuentaActual,
   onCambiarCuenta,
+  estadoNodo = "ok",
 }) {
   const [abierto, setAbierto] = useState(false);
   const navigate = useNavigate();
@@ -16,8 +17,16 @@ export default function Navbar({
     return cuentas.find((c) => c.cuenta === cuentaActual);
   }, [cuentas, cuentaActual]);
 
+  const formatoTipoCuenta = (tipo) => {
+    const t = (tipo || "").toLowerCase();
+    if (t === "ahorro") return "Ahorro";
+    if (t === "nomina") return "Nómina";
+    if (t === "corriente") return "Crédito";
+    return tipo;
+  };
+
   const nombre = cuentaSeleccionada?.cliente || usuario?.nombre || "Usuario";
-  const tipoCuenta = cuentaSeleccionada?.tipo || usuario?.tipoCuenta || "";
+  const tipoCuenta = formatoTipoCuenta(cuentaSeleccionada?.tipo || usuario?.tipoCuenta || "");
   const numeroCuenta = cuentaSeleccionada?.cuenta || cuentaActual || "";
 
   const cambiarCuenta = (cuenta) => {
@@ -38,6 +47,22 @@ export default function Navbar({
       </div>
 
       <div className="flex items-center gap-4">
+        {/* Status del Nodo Activo (Compacto y Elegante, sin estorbar) */}
+        {estadoNodo && (
+          <div className="flex items-center gap-2.5 text-[10px] font-bold text-slate-500 select-none mr-2">
+            <span className="relative flex h-4 w-4 items-center justify-center">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                estadoNodo === "ok" ? "bg-emerald-400" : estadoNodo === "lento" ? "bg-amber-400" : "bg-red-400"
+              }`}></span>
+              <span className={`relative inline-flex rounded-full h-3 w-3 ${
+                estadoNodo === "ok" ? "bg-emerald-500" : estadoNodo === "lento" ? "bg-amber-500" : "bg-red-500"
+              }`}></span>
+            </span>
+            <span className="tracking-wider uppercase pt-0.5">
+              {estadoNodo === "ok" ? "Nodo Principal Activo" : estadoNodo === "lento" ? "Latencia Elevada" : "Servidor Desconectado"}
+            </span>
+          </div>
+        )}
 
         <button
           onClick={() => navigate("/consulta", { state: { origin: "transferencia" } })}
@@ -99,8 +124,8 @@ export default function Navbar({
                           {c.cliente}
                         </p>
 
-                        <p className="text-sm text-gray-500 capitalize">
-                          {c.tipo} · {c.cuenta}
+                        <p className="text-sm text-gray-500">
+                          {formatoTipoCuenta(c.tipo)} · {c.cuenta}
                         </p>
                       </div>
 
