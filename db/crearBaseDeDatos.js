@@ -1,109 +1,217 @@
-use("BancoNexus");
+const { MongoClient, ServerApiVersion } = require("mongodb");
+const bcrypt = require("bcrypt");
+const dns = require("dns");
+dns.setServers(["8.8.8.8"]);
 
-// Detectar y redirigir al nodo primario en caso de estar en un Replica Set
-const getHelloStatus = () => {
-  if (typeof db.hello === "function") {
-    return db.hello();
-  }
-  if (typeof db.isMaster === "function") {
-    return db.isMaster();
-  }
-  return db.runCommand({ hello: 1 });
-};
+const MONGO_URI = `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_SERVER}`;
+const DB_NAME = "BancoNexus";
+const SALT_ROUNDS = 10;
 
-const hello = getHelloStatus();
-if (hello.setName) {
-  const isPrimary = hello.isWritablePrimary || hello.ismaster;
-  if (!isPrimary) {
-    if (!hello.primary) {
-      throw new Error("El Replica Set no tiene un nodo primario activo o accesible.");
-    }
-    print(`[Replica Set] Conectado a un nodo SECUNDARIO. Redirigiendo operaciones al nodo PRIMARIO: ${hello.primary}`);
-    db = new Mongo(hello.primary).getDB("BancoNexus");
-  } else {
-    print("[Replica Set] Conectado directamente al nodo PRIMARIO.");
-  }
-} else {
-  print("[Standalone] Conectado a una instancia independiente.");
+function generarContraseña(nombre) {
+  return `${nombre.replace(/\s+/g, "")}123!`;
 }
 
-db.clientes.drop();
-db.cuentas.drop();
-db.transacciones.drop();
+function generarNumeroCuenta(idSecuencial) {
+  const base = `180${String(idSecuencial).padStart(6, "0")}`;
+  const suma = base.split("").reduce((acc, digit) => acc + Number(digit), 0);
+  const digitoVerificador = suma % 10;
+  return `${base}${digitoVerificador}`;
+}
 
-// Datos base
+async function main() {
+  const client = new MongoClient(MONGO_URI, {
+    serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true }
+  });
+ 
+  await client.connect();
+  const db = client.db(DB_NAME);
 
-const clientesBase = [
-  { nombre: "Carlos Mendoza", curp: "MERC850312HDFNRS09", correo: "carlos.mendoza@nexus.mx", telefono: "5551234567", fechaRegistro: new Date("2026-03-15") },
-  { nombre: "Laura Gutierrez", curp: "GUVL920708MDFTRR02", correo: "laura.gutierrez@nexus.mx", telefono: "5559876543", fechaRegistro: new Date("2025-07-22") },
-  { nombre: "Jorge Herrera", curp: "HECJ780924HDFRSRR04", correo: "jorge.herrera@nexus.mx", telefono: "5553456789", fechaRegistro: new Date("2026-01-10") },
-  { nombre: "Maria Lopez", curp: "LOSM910415MDFPNR06", correo: "maria.lopez@nexus.mx", telefono: "5552345678", fechaRegistro: new Date("2025-11-05") },
-  { nombre: "Roberto Solis", curp: "SOPR870630HDFLRB08", correo: "roberto.solis@nexus.mx", telefono: "5554567890", fechaRegistro: new Date("2025-08-30") },
-  { nombre: "Ana Ramirez", curp: "RAFA930120MDFMNN03", correo: "ana.ramirez@nexus.mx", telefono: "5556789012", fechaRegistro: new Date("2026-04-18") },
-  { nombre: "Miguel Torres", curp: "TOBM800517HDFRRG01", correo: "miguel.torres@nexus.mx", telefono: "5557890123", fechaRegistro: new Date("2025-06-02") },
-  { nombre: "Daniela Ruiz", curp: "RIED951103MDFZPN07", correo: "daniela.ruiz@nexus.mx", telefono: "5558901234", fechaRegistro: new Date("2025-12-14") },
-  { nombre: "Fernando Cruz", curp: "CUMF760811HDFRRN05", correo: "fernando.cruz@nexus.mx", telefono: "5550123456", fechaRegistro: new Date("2025-09-27") },
-  { nombre: "Sofia Perez", curp: "PEAS001228MDFRGF00", correo: "sofia.perez@nexus.mx", telefono: "5552109876", fechaRegistro: new Date("2026-03-08") },
-  { nombre: "Eduardo Navarro", curp: "NALE890305HDFRDD02", correo: "eduardo.navarro@nexus.mx", telefono: "5553210987", fechaRegistro: new Date("2025-06-19") },
-  { nombre: "Gabriela Vargas", curp: "VAMG970722MDFRRB04", correo: "gabriela.vargas@nexus.mx", telefono: "5554321098", fechaRegistro: new Date("2026-01-31") },
-];
+  db.collection("clientes").drop().catch(() => {});
+  db.collection("cuentas").drop().catch(() => {});
+  db.collection("beneficiarios").drop().catch(() => {});
+  db.collection("transferencias").drop().catch(() => {});
+  db.collection("auditoria").drop().catch(() => {});
 
-// Insertar clientes
+  // ─────────────────────────────────────────────────────────────
+  // 1. Clientes
+  // ─────────────────────────────────────────────────────────────
 
-const clientesInsertados = db.clientes.insertMany(clientesBase);
-const clientesIds = Object.values(clientesInsertados.insertedIds);
+  const clientesBase = [
+    { nombre: "Carlos Mendoza", curp: "MERC850312HDFNRS09", correo: "carlos.mendoza@gmail.com", telefono: "5551234567", fechaRegistro: new Date("2026-03-15") },
+    { nombre: "Laura Gutierrez", curp: "GUVL920708MDFTRR02", correo: "laura.gutierrez@gmail.com", telefono: "5559876543", fechaRegistro: new Date("2025-07-22") },
+    { nombre: "Jorge Herrera", curp: "HECJ780924HDFRSRR04", correo: "jorge.herrera@gmail.com", telefono: "5553456789", fechaRegistro: new Date("2026-01-10") },
+    { nombre: "Maria Lopez", curp: "LOSM910415MDFPNR06", correo: "maria.lopez@gmail.com", telefono: "5552345678", fechaRegistro: new Date("2025-11-05") },
+    { nombre: "Roberto Solis", curp: "SOPR870630HDFLRB08", correo: "roberto.solis@gmail.com", telefono: "5554567890", fechaRegistro: new Date("2025-08-30") },
+    { nombre: "Ana Ramirez", curp: "RAFA930120MDFMNN03", correo: "ana.ramirez@gmail.com", telefono: "5556789012", fechaRegistro: new Date("2026-04-18") },
+    { nombre: "Miguel Torres", curp: "TOBM800517HDFRRG01", correo: "miguel.torres@gmail.com", telefono: "5557890123", fechaRegistro: new Date("2025-06-02") },
+    { nombre: "Daniela Ruiz", curp: "RIED951103MDFZPN07", correo: "daniela.ruiz@gmail.com", telefono: "5558901234", fechaRegistro: new Date("2025-12-14") },
+    { nombre: "Fernando Cruz", curp: "CUMF760811HDFRRN05", correo: "fernando.cruz@gmail.com", telefono: "5550123456", fechaRegistro: new Date("2025-09-27") },
+    { nombre: "Sofia Perez", curp: "PEAS001228MDFRGF00", correo: "sofia.perez@gmail.com", telefono: "5552109876", fechaRegistro: new Date("2026-03-08") },
+    { nombre: "Eduardo Navarro", curp: "NALE890305HDFRDD02", correo: "eduardo.navarro@gmail.com", telefono: "5553210987", fechaRegistro: new Date("2025-06-19") },
+  ];
 
-// Generar cuentas (1 por cliente)
+  console.log("\n=== Contraseñas generadas (texto plano) ===");
+  for (const c of clientesBase) {
+    const plain = generarContraseña(c.nombre);
+    c.contraseña = await bcrypt.hash(plain, SALT_ROUNDS);
+    console.log(`  ${c.correo}: ${plain}`);
+  }
 
-const tiposCuenta = ["ahorro", "corriente", "nomina"];
+  const clientesInsertados = await db.collection("clientes").insertMany(clientesBase);
+  const clientesIds = Object.values(clientesInsertados.insertedIds);
 
+  await db.collection("clientes").createIndex({ correo: 1 }, { unique: true });
 
-const cuentas = clientesIds.map((idCliente, index) => ({
-  clienteId: idCliente,
-  numeroCuenta: `NX${String(100 + index).padStart(4, "0")}1`,
-  tipo: tiposCuenta[index % 3],
-  tarjeta: `4321 9876 ${(1000 + index * 111).toString().slice(0, 4)} ${(2000 + index * 222).toString().slice(0, 4)}`,
-  saldo: parseFloat((1000 + (index * (48000 / 10))).toFixed(2)),
-  status: "activa",
-  fechaApertura: new Date(),
-}));
+  // ─────────────────────────────────────────────────────────────
+  // 2. Cuentas
+  // ─────────────────────────────────────────────────────────────
 
-const cuentasInsertadas = db.cuentas.insertMany(cuentas);
-const cuentasIds = Object.values(cuentasInsertadas.insertedIds);
+  const cuentas = clientesIds.map((idCliente, index) => ({
+    clienteId: idCliente,
+    numeroCuenta: generarNumeroCuenta(index + 1),
+    saldo: parseFloat((1000 + (index * (48000 / 10))).toFixed(2)),
+    estado: "activa",
+    fechaApertura: new Date(),
+  }));
 
-// Generar transacciones (1 por cuenta) 
+  await db.collection("cuentas").insertMany(cuentas);
 
-const conceptos = {
-  deposito: ["Deposito en ventanilla", "Transferencia recibida", "Abono de nomina"],
-  retiro: ["Retiro en cajero", "Pago de servicio", "Transferencia enviada"],
-  cargo: ["Comision mensual", "Cargo por servicio", "Pago con tarjeta"],
-};
+  await db.collection("cuentas").createIndex({ numeroCuenta: 1 }, { unique: true });
 
-// Sucursales para simular operaciones remotas
-const sucursales = ["CDMX", "GDL", "MTY", "CUN", "QRO"];
+  const docsCuentas = await db.collection("cuentas").find().toArray();
+  const numerosCuenta = docsCuentas.map(d => d.numeroCuenta);
 
-const transacciones = cuentasIds.map((idCuenta, index) => ({
-  cuentaId: idCuenta,
-  monto: parseFloat((1000 + (index * (5000 / 10))).toFixed(2)),
-  tipo: index % 3 === 0 ? "deposito" : index % 3 === 1 ? "retiro" : "cargo",
-  concepto: conceptos[index % 3 === 0 ? "deposito" : index % 3 === 1 ? "retiro" : "cargo"][index % 3],
-  sucursal: sucursales[index % sucursales.length],
-  fecha: new Date(),
-}));
+  // ─────────────────────────────────────────────────────────────
+  // 3. Beneficiarios
+  // ─────────────────────────────────────────────────────────────
 
-db.transacciones.insertMany(transacciones);
+  const aliasNombres = ["Juan Perez", "Maria Garcia", "Pedro Hernandez", "Luis Martinez", "Ana Torres", "Sofia Ramirez", "Diego Flores", "Valentina Lopez"];
 
-// Resumen
+  const beneficiarios = [];
+  for (let i = 0; i < clientesIds.length; i++) {
+    const numBeneficiarios = (i % 2) + 1;
+    const cuentasDisponibles = numerosCuenta.filter((_, idx) => idx !== i);
+    for (let j = 0; j < numBeneficiarios; j++) {
+      beneficiarios.push({
+        clienteId: clientesIds[i],
+        numeroCuentaDestino: cuentasDisponibles[(i + j) % cuentasDisponibles.length],
+        alias: aliasNombres[(i * 2 + j) % aliasNombres.length],
+        fechaRegistro: new Date(),
+      });
+    }
+  }
 
-print("\n=== Banco Nexus - Base de datos lista ===");
-print(`  Clientes:      ${db.clientes.countDocuments()}`);
-print(`  Cuentas:       ${db.cuentas.countDocuments()}`);
-print(`  Transacciones: ${db.transacciones.countDocuments()}`);
+  await db.collection("beneficiarios").insertMany(beneficiarios);
+  await db.collection("beneficiarios").createIndex({ clienteId: 1 });
 
-// Ejemplo de registro encadenado
-const ejCliente = db.clientes.findOne();
-const ejCuenta = db.cuentas.findOne({ clienteId: ejCliente._id });
-const ejTx = db.transacciones.findOne({ cuentaId: ejCuenta._id });
+  // ─────────────────────────────────────────────────────────────
+  // 4. Transferencias
+  // ─────────────────────────────────────────────────────────────
 
-print("\n--- Ejemplo de registro encadenado ---");
-printjson({ cliente: ejCliente.nombre, cuenta: ejCuenta.numeroCuenta, ultimaTx: ejTx.concepto, sucursal: ejTx.sucursal });
+  const conceptos = [
+    "Pago de servicios",
+    "Transferencia entre cuentas",
+    "Pago de renta",
+    "Reembolso",
+    "Pago de nomina",
+    "Transferencia a familiar",
+    "Pago de colegiatura",
+    "Compra en linea",
+    "Pago de credito",
+    "Ahorro mensual",
+    "Donacion",
+  ];
+
+  const transferencias = numerosCuenta.map((cuenta, index) => {
+    const destinoIndex = (index + 1) % numerosCuenta.length;
+    return {
+      cuentaOrigen: cuenta,
+      cuentaDestino: numerosCuenta[destinoIndex],
+      monto: parseFloat((500 + (index * 250)).toFixed(2)),
+      concepto: conceptos[index % conceptos.length],
+      fechaHora: new Date(),
+      estado: "aprobada",
+    };
+  });
+
+  await db.collection("transferencias").insertMany(transferencias);
+
+  // ─────────────────────────────────────────────────────────────
+  // 5. Auditoria
+  // ─────────────────────────────────────────────────────────────
+
+  const eventosAuditoria = [
+    { accion: "login_exitoso", detalle: { metodo: "correo_contraseña" } },
+    { accion: "alta_cuenta", detalle: { tipo: "ahorro" } },
+    { accion: "transferencia_aprobada", detalle: { cuentaOrigen: "", cuentaDestino: "", monto: 0 } },
+    { accion: "login_fallido", detalle: { intento: 1, metodo: "correo_contraseña" } },
+    { accion: "actualizacion_perfil", detalle: { campo: "telefono" } },
+    { accion: "transferencia_rechazada", detalle: { motivo: "saldo_insuficiente" } },
+    { accion: "login_exitoso", detalle: { metodo: "correo_contraseña" } },
+    { accion: "transferencia_aprobada", detalle: { cuentaOrigen: "", cuentaDestino: "", monto: 0 } },
+    { accion: "alta_cuenta", detalle: { tipo: "corriente" } },
+    { accion: "login_fallido", detalle: { intento: 2, metodo: "correo_contraseña" } },
+    { accion: "transferencia_aprobada", detalle: { cuentaOrigen: "", cuentaDestino: "", monto: 0 } },
+  ];
+
+  const auditoria = eventosAuditoria.map((evento, index) => {
+    const e = {
+      fechaHora: new Date(),
+      usuarioId: clientesIds[index % clientesIds.length],
+      accion: evento.accion,
+      estado: evento.accion.includes("fallido") || evento.accion.includes("rechazada") ? "fallido" : "exitoso",
+      detalle: { ...evento.detalle },
+    };
+    if (e.accion.includes("transferencia")) {
+      const tx = transferencias[index % transferencias.length];
+      e.detalle.cuentaOrigen = tx.cuentaOrigen;
+      e.detalle.cuentaDestino = tx.cuentaDestino;
+      e.detalle.monto = tx.monto;
+    }
+    return e;
+  });
+
+  await db.collection("auditoria").insertMany(auditoria);
+
+  // ─────────────────────────────────────────────────────────────
+  // Resumen
+  // ─────────────────────────────────────────────────────────────
+
+  console.log("\n=== Banco Nexus - Base de datos lista ===");
+  console.log(`  Clientes:       ${await db.collection("clientes").countDocuments()}`);
+  console.log(`  Cuentas:        ${await db.collection("cuentas").countDocuments()}`);
+  console.log(`  Beneficiarios:  ${await db.collection("beneficiarios").countDocuments()}`);
+  console.log(`  Transferencias: ${await db.collection("transferencias").countDocuments()}`);
+  console.log(`  Auditoria:      ${await db.collection("auditoria").countDocuments()}`);
+
+  const ejCliente = await db.collection("clientes").findOne();
+  const ejCuenta = await db.collection("cuentas").findOne({ clienteId: ejCliente._id });
+  const ejTransferencia = await db.collection("transferencias").findOne({
+    $or: [
+      { cuentaOrigen: ejCuenta.numeroCuenta },
+      { cuentaDestino: ejCuenta.numeroCuenta },
+    ],
+  });
+
+  console.log("\n--- Ejemplo de registro encadenado ---");
+  console.log(JSON.stringify({
+    cliente: ejCliente.nombre,
+    cuenta: ejCuenta.numeroCuenta,
+    saldo: ejCuenta.saldo,
+    ultimaTransferencia: ejTransferencia
+      ? {
+          origen: ejTransferencia.cuentaOrigen,
+          destino: ejTransferencia.cuentaDestino,
+          monto: ejTransferencia.monto,
+          concepto: ejTransferencia.concepto,
+        }
+      : null,
+  }, null, 2));
+
+  await client.close();
+}
+
+main().catch((err) => {
+  console.error("Error:", err);
+  process.exit(1);
+});
