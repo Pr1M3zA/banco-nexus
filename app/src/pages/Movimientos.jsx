@@ -14,6 +14,7 @@ import {
 
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
+import { fetchConAlerta } from "../utils/fetchConAlerta";
 
 export default function Movimientos() {
   const cuentaInicial = "NX01001";
@@ -44,60 +45,46 @@ export default function Movimientos() {
   const obtenerNumeroCuenta = () =>
     datosCuenta?.cuenta?.numeroCuenta || cuentaActual;
 
-  const cargarCuentas = async () => {
-    try {
-      const res = await fetch("http://localhost:3001/api/cuentas");
-      const data = await res.json();
-
-      const lista = data.cuentas && Array.isArray(data.cuentas) ? data.cuentas : [];
-      setCuentas(lista);
-
-      const cuentaGuardada = localStorage.getItem("cuentaActual");
-      if (!cuentaGuardada && lista.length > 0) {
-        const primera = lista[0].cuenta;
-        setCuentaActual(primera);
-        localStorage.setItem("cuentaActual", primera);
-      }
-    } catch (error) {
-      console.error("Error cargando cuentas:", error);
-      setCuentas([]);
-    }
-  };
-
-  const cargarDatos = async (cuenta) => {
+  const cargarDatos = async () => {
     setLoading(true);
     try {
-      const resCuenta = await fetch(`http://localhost:3001/api/cuenta/${cuenta}`);
-      const dataCuenta = await resCuenta.json();
+      const { res: resPerfil } = await fetchConAlerta(`http://localhost:3001/api/cuenta/perfil`);
+      if (!resPerfil) throw new Error("Sin conexión al servidor");
+      const dataPerfil = await resPerfil.json();
 
-      const resHistorial = await fetch(`http://localhost:3001/api/historial/${cuenta}`);
-      const dataHistorial = await resHistorial.json();
+      if (!resPerfil.ok) {
+        throw new Error(dataPerfil.mensaje || "No se pudo cargar la cuenta");
+      }
 
-      const listaMovimientos = Array.isArray(dataHistorial)
-        ? dataHistorial
-        : dataHistorial.movimientos || [];
+      const { res: resHistorial } = await fetchConAlerta(`http://localhost:3001/api/cuenta/movimientos`);
+      const dataHistorial = resHistorial && resHistorial.ok ? await resHistorial.json() : { movimientos: [] };
 
-      setDatosCuenta(dataCuenta);
-      setMovimientos(listaMovimientos);
+      const datosAdaptados = {
+        cliente: dataPerfil.usuario,
+        cuenta: dataPerfil.cuenta
+      };
+
+      setDatosCuenta(datosAdaptados);
+      setMovimientos(dataHistorial.movimientos || []);
+      
+      if (dataPerfil.cuenta) {
+        setCuentas([{ cuenta: dataPerfil.cuenta.numeroCuenta }]);
+        setCuentaActual(dataPerfil.cuenta.numeroCuenta);
+        localStorage.setItem("cuentaActual", dataPerfil.cuenta.numeroCuenta);
+      }
     } catch (error) {
       console.error("Error cargando movimientos:", error);
       setDatosCuenta(null);
       setMovimientos([]);
+      setCuentas([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    cargarCuentas();
+    cargarDatos();
   }, []);
-
-  useEffect(() => {
-    if (cuentaActual) {
-      localStorage.setItem("cuentaActual", cuentaActual);
-      cargarDatos(cuentaActual);
-    }
-  }, [cuentaActual]);
 
   // Filtrado de movimientos en tiempo real
   const movimientosFiltrados = useMemo(() => {
@@ -210,7 +197,7 @@ export default function Movimientos() {
   return (
     <div className="flex bg-slate-50 min-h-screen font-sans text-slate-900">
       
-      {/* Estilos para impresión limpia (UX Premium) */}
+
       <style>{`
         @media print {
           body * {
@@ -250,9 +237,9 @@ export default function Movimientos() {
 
         <section className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Historial Ledger de Transacciones</h1>
+            <h1 className="text-2xl font-bold text-slate-800">Historial de Transacciones</h1>
             <p className="text-slate-500 text-sm">
-              Visualiza y audita las operaciones financieras asociadas a la cuenta {obtenerNumeroCuenta()}.
+              Visualiza las operaciones financieras asociadas a la cuenta {obtenerNumeroCuenta()}.
             </p>
           </div>
 
@@ -354,7 +341,7 @@ export default function Movimientos() {
           <div className="flex items-center justify-between mb-8 no-print">
             <div>
               <h2 className="text-lg font-bold text-slate-800 tracking-tight">
-                Libro Mayor de Transacciones
+                Historial de Transacciones
               </h2>
               <p className="text-xs text-slate-400">
                 Se encontraron {movimientosFiltrados.length} operaciones que coinciden con tus filtros.

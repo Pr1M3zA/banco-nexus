@@ -1,22 +1,61 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
-import Dashboard from "./pages/Dashboard";
+import Login        from "./pages/Login";
+import Register     from "./pages/Register";
+import Dashboard    from "./pages/Dashboard";
 import ConsultaCuenta from "./pages/ConsultaCuenta";
-
-import Movimientos from "./pages/Movimientos";
+import Movimientos  from "./pages/Movimientos";
 import DatosCliente from "./pages/DatosCliente";
+import Transferencia from "./pages/Transferencia";
+import Beneficiarios from "./pages/Beneficiarios";
+
+// ── Guard: redirige al login si no hay token en ningún storage ────────────────
+function PrivateRoute({ children }) {
+  const token =
+    localStorage.getItem("nexus_token") ||
+    sessionStorage.getItem("nexus_token");
+  return token ? children : <Navigate to="/login" replace />;
+}
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/consulta" element={<ConsultaCuenta />} />
+        {/* Ruta raíz → login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
-        <Route path="/movimientos" element={<Movimientos />} />
-        <Route path="/cliente" element={<DatosCliente />} />
-        <Route path="*" element={<Navigate to="/dashboard" />} />
+        {/* Autenticación */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
+        {/* Rutas protegidas */}
+        <Route
+          path="/dashboard"
+          element={<PrivateRoute><Dashboard /></PrivateRoute>}
+        />
+        <Route
+          path="/consulta"
+          element={<PrivateRoute><ConsultaCuenta /></PrivateRoute>}
+        />
+        <Route
+          path="/movimientos"
+          element={<PrivateRoute><Movimientos /></PrivateRoute>}
+        />
+        <Route
+          path="/cliente"
+          element={<PrivateRoute><DatosCliente /></PrivateRoute>}
+        />
+        <Route
+          path="/transferencia"
+          element={<PrivateRoute><Transferencia /></PrivateRoute>}
+        />
+        <Route
+          path="/beneficiarios"
+          element={<PrivateRoute><Beneficiarios /></PrivateRoute>}
+        />
+
+        {/* Catch-all */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );

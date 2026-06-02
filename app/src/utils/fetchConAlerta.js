@@ -22,10 +22,20 @@ function _sleep(ms) {
 export async function fetchConAlerta(url, opciones = {}, reintentos = MAX_REINTENTOS) {
   let intentos = 0;
 
+  // Extraer token para inyectarlo en cada petición automáticamente
+  const token = localStorage.getItem('nexus_token') || sessionStorage.getItem('nexus_token');
+  const customOptions = {
+    ...opciones,
+    headers: {
+      ...opciones.headers,
+      ...(token ? { "Authorization": `Bearer ${token}` } : {})
+    }
+  };
+
   while (intentos <= reintentos) {
     const t0 = Date.now();
     try {
-      const res = await fetch(url, opciones);
+      const res = await fetch(url, customOptions);
       const ms  = Date.now() - t0;
 
       let alerta = null;

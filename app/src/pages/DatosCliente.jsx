@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
+import { fetchConAlerta } from "../utils/fetchConAlerta";
 
 export default function DatosCliente() {
   const cuentaInicial = "NX01001";
@@ -30,55 +31,40 @@ export default function DatosCliente() {
   const obtenerNumeroCuenta = () => obtenerCuenta().numeroCuenta || cuentaActual;
   const obtenerStatus = () => obtenerCuenta().status || "activa";
 
-  const cargarCuentas = async () => {
-    try {
-      const res = await fetch("http://localhost:3001/api/cuentas");
-      const data = await res.json();
-
-      const lista = data.cuentas && Array.isArray(data.cuentas) ? data.cuentas : [];
-      setCuentas(lista);
-
-      const cuentaGuardada = localStorage.getItem("cuentaActual");
-      if (!cuentaGuardada && lista.length > 0) {
-        const primera = lista[0].cuenta;
-        setCuentaActual(primera);
-        localStorage.setItem("cuentaActual", primera);
-      }
-    } catch (error) {
-      console.error("Error cargando cuentas:", error);
-      setCuentas([]);
-    }
-  };
-
-  const cargarDatos = async (cuenta) => {
+  const cargarDatos = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:3001/api/cuenta/${cuenta}`);
+      const { res } = await fetchConAlerta(`http://localhost:3001/api/cuenta/perfil`);
+      if (!res) throw new Error("Sin conexión al servidor");
+      
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.mensaje || "No se pudo cargar el cliente");
+        throw new Error(data.mensaje || "No se pudo cargar el perfil del cliente");
       }
 
-      setDatosCuenta(data);
+      setDatosCuenta({
+        cliente: data.usuario,
+        cuenta: data.cuenta
+      });
+
+      if (data.cuenta) {
+        setCuentas([{ cuenta: data.cuenta.numeroCuenta }]);
+        setCuentaActual(data.cuenta.numeroCuenta);
+        localStorage.setItem("cuentaActual", data.cuenta.numeroCuenta);
+      }
     } catch (error) {
       console.error("Error cargando datos del cliente:", error);
       setDatosCuenta(null);
+      setCuentas([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    cargarCuentas();
+    cargarDatos();
   }, []);
-
-  useEffect(() => {
-    if (cuentaActual) {
-      localStorage.setItem("cuentaActual", cuentaActual);
-      cargarDatos(cuentaActual);
-    }
-  }, [cuentaActual]);
 
 
 
@@ -139,10 +125,6 @@ export default function DatosCliente() {
                   <div className="bg-white/5 rounded-xl p-3 flex justify-between text-xs">
                     <span className="text-slate-400 font-semibold">Número de Cuenta</span>
                     <span className="font-bold text-white">{obtenerNumeroCuenta()}</span>
-                  </div>
-                  <div className="bg-white/5 rounded-xl p-3 flex justify-between text-xs">
-                    <span className="text-slate-400 font-semibold">Tipo</span>
-                    <span className="font-bold text-white capitalize">{obtenerTipoCuenta()}</span>
                   </div>
                   <div className="bg-white/5 rounded-xl p-3 flex justify-between text-xs">
                     <span className="text-slate-400 font-semibold">Estado Cuenta</span>

@@ -425,7 +425,7 @@ export default function SaldoActual() {
                 </div>
               </div>
 
-              {/* Tarjeta de Débito/Crédito Virtual Interactiva (UX/UI Premium) */}
+
               <div className="xl:col-span-2 bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex flex-col md:flex-row gap-8">
                 
                 {/* Visual Card Component */}
@@ -446,7 +446,7 @@ export default function SaldoActual() {
                     </div>
                   )}
 
-                  {/* Reflejos de tarjeta premium */}
+
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full filter blur-xl -mr-10 -mt-10" />
 
                   <div className="flex justify-between items-start">

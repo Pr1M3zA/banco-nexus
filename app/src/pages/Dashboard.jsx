@@ -32,6 +32,8 @@ export default function Dashboard() {
   // Estado del nodo: 'ok' | 'lento' | 'caido'
   const [estadoNodo, setEstadoNodo] = useState("ok");
 
+
+
   const registrarAlerta = useCallback((alerta) => {
     if (!alerta) return;
     const type  = alerta.tipo === "error" ? "error" : "warning";
@@ -56,72 +58,63 @@ export default function Dashboard() {
   const obtenerNumeroCuenta = () =>
     datosCuenta?.cuenta?.numeroCuenta || cuentaActual;
 
-  const cargarCuentas = async () => {
-    try {
-      const { res, alerta } = await fetchConAlerta("http://localhost:3001/api/cuentas");
-      registrarAlerta(alerta);
-      if (!res) throw new Error("Sin conexión");
-      const data = await res.json();
-      const lista = data.cuentas && Array.isArray(data.cuentas) ? data.cuentas : [];
-      setCuentas(lista);
-      const cuentaGuardada = localStorage.getItem("cuentaActual");
-      if (!cuentaGuardada && lista.length > 0) {
-        const primera = lista[0].cuenta;
-        setCuentaActual(primera);
-        localStorage.setItem("cuentaActual", primera);
-      }
-    } catch (error) {
-      console.error("Error cargando cuentas:", error);
-      setCuentas([]);
-    }
-  };
-
-  const cargarDatos = async (cuenta) => {
+  const cargarDatos = async () => {
     setLoading(true);
 
     try {
-      const { res: resCuenta, alerta: a1 } = await fetchConAlerta(
-        `http://localhost:3001/api/cuenta/${cuenta}`
+      const { res: resPerfil, alerta: a1 } = await fetchConAlerta(
+        `http://localhost:3001/api/cuenta/perfil`
       );
       registrarAlerta(a1);
-      if (!resCuenta) throw new Error("Sin conexión al servidor");
-      const dataCuenta = await resCuenta.json();
+      if (!resPerfil) throw new Error("Sin conexión al servidor");
+      const dataPerfil = await resPerfil.json();
 
-      if (!resCuenta.ok) {
-        throw new Error(dataCuenta.mensaje || "No se pudo cargar la cuenta");
+      if (resPerfil?.status === 401) {
+        localStorage.removeItem('nexus_token');
+        sessionStorage.removeItem('nexus_token');
+        window.location.href = '/'; 
+        return;
+      }
+      
+      if (!resPerfil.ok) {
+        throw new Error(dataPerfil.mensaje || "No se pudo cargar el perfil");
       }
 
       const { res: resHistorial, alerta: a2 } = await fetchConAlerta(
-        `http://localhost:3001/api/historial/${cuenta}`
+        `http://localhost:3001/api/cuenta/movimientos`
       );
       registrarAlerta(a2);
-      const dataHistorial = resHistorial ? await resHistorial.json() : { movimientos: [] };
+      const dataHistorial = resHistorial && resHistorial.ok ? await resHistorial.json() : { movimientos: [] };
 
-      const listaMovimientos = Array.isArray(dataHistorial)
-        ? dataHistorial
-        : dataHistorial.movimientos || [];
+      const datosAdaptados = {
+        cliente: dataPerfil.usuario,
+        cuenta: dataPerfil.cuenta
+      };
 
-      setDatosCuenta(dataCuenta);
-      setMovimientos(listaMovimientos);
+      setDatosCuenta(datosAdaptados);
+      setMovimientos(dataHistorial.movimientos || []);
+      
+      if (dataPerfil.cuenta) {
+        setCuentas([{ cuenta: dataPerfil.cuenta.numeroCuenta }]);
+        setCuentaActual(dataPerfil.cuenta.numeroCuenta);
+        localStorage.setItem("cuentaActual", dataPerfil.cuenta.numeroCuenta);
+      }
+
     } catch (error) {
       console.error("Error cargando dashboard:", error);
       setDatosCuenta(null);
       setMovimientos([]);
+      setCuentas([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    cargarCuentas();
+    cargarDatos();
   }, []);
 
-  useEffect(() => {
-    if (cuentaActual) {
-      localStorage.setItem("cuentaActual", cuentaActual);
-      cargarDatos(cuentaActual);
-    }
-  }, [cuentaActual]);
+
 
   const ingresos = movimientos
     .filter((m) => m.tipo === "deposito")
@@ -132,7 +125,7 @@ export default function Dashboard() {
     .reduce((sum, m) => sum + Math.abs(Number(m.monto || 0)), 0);
 
   const chartData = useMemo(() => {
-    if (!datosCuenta || movimientos.length === 0) return [];
+    if (!datosCuenta) return [];
 
     const ordenados = [...movimientos].sort(
       (a, b) => new Date(a.fecha) - new Date(b.fecha)
@@ -143,16 +136,17 @@ export default function Dashboard() {
 
     // Agregar punto inicial de Apertura con la fecha de apertura real de la cuenta
     const fechaAperturaRaw = datosCuenta?.cuenta?.fechaApertura || datosCuenta?.fechaApertura;
-    if (fechaAperturaRaw) {
-      const fechaApertura = new Date(fechaAperturaRaw);
+    const fechaApertura = new Date(fechaAperturaRaw);
+    if (fechaAperturaRaw && !isNaN(fechaApertura.getTime())) {
       points.push({
         fecha: fechaApertura.toLocaleDateString("es-MX", {
           day: "2-digit",
           month: "short",
+          year: "numeric"
         }),
         saldo: saldo,
       });
-    } else if (ordenados.length > 0) {
+    } else {
       points.push({
         fecha: "Apertura",
         saldo: saldo,
@@ -163,14 +157,26 @@ export default function Dashboard() {
       if (m.tipo === "deposito") saldo += Number(m.monto || 0);
       else saldo -= Math.abs(Number(m.monto || 0));
 
+      const movDate = new Date(m.fecha);
       points.push({
-        fecha: new Date(m.fecha).toLocaleDateString("es-MX", {
-          day: "2-digit",
-          month: "short",
-        }),
+        fecha: !isNaN(movDate.getTime()) 
+          ? movDate.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" })
+          : "Fecha Desconocida",
         saldo,
       });
     });
+
+    // Si no hay movimientos, agregamos el día de hoy para que se vea una línea plana
+    if (ordenados.length === 0) {
+      points.push({
+        fecha: new Date().toLocaleDateString("es-MX", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric"
+        }),
+        saldo,
+      });
+    }
 
     return points;
   }, [datosCuenta, movimientos, ingresos, egresos]);
@@ -227,7 +233,7 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2 space-y-6">
-            {/* Tarjeta de Saldo Disponible Compacta y Premium */}
+
             <section className="bg-gradient-to-br from-blue-700 to-indigo-900 rounded-3xl p-6 text-white shadow-xl shadow-blue-100/50 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="bg-white/10 p-3 rounded-2xl border border-white/10">
@@ -288,89 +294,50 @@ export default function Dashboard() {
             </div>
 
             {/* Evolución del Saldo agrupado dentro de la columna izquierda (Cero espacios vacíos) */}
-            <section className="bg-white rounded-3xl p-6 shadow-sm border border-slate-150">
-              <h2 className="font-bold text-xl text-slate-800">Evolución del Saldo</h2>
-              <p className="text-sm text-gray-500 mb-6">
+            <section className="bg-white rounded-[2rem] p-8 shadow-sm">
+              <h2 className="font-black text-2xl text-slate-800 tracking-tight">Evolución del Saldo</h2>
+              <p className="text-sm text-slate-500 mb-8 mt-1">
                 Datos obtenidos desde la API
               </p>
 
               <div className="h-80">
-                {chartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="fecha" />
-                      <YAxis />
-                      <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="saldo"
-                        stroke="#1d4ed8"
-                        strokeWidth={4}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-gray-500">
-                    No hay suficientes movimientos para generar gráfica.
-                  </div>
-                )}
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis 
+                      dataKey="fecha" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fill: '#94a3b8', fontSize: 12, fontWeight: 600}} 
+                      dy={10}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fill: '#94a3b8', fontSize: 12, fontWeight: 600}} 
+                      tickFormatter={(value) => `$${value}`}
+                      dx={-10}
+                    />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }}
+                      formatter={(value) => [`$${value.toLocaleString("es-MX")}`, "Saldo"]}
+                      labelStyle={{ color: '#64748b', fontWeight: 'bold', marginBottom: '4px' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="saldo"
+                      stroke="#879cee"
+                      strokeWidth={4}
+                      dot={{ r: 4, fill: "#879cee", strokeWidth: 2, stroke: "#fff" }}
+                      activeDot={{ r: 6, fill: "#4f46e5", stroke: "#fff", strokeWidth: 3 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </section>
           </div>
 
-          {/* Últimos movimientos a la derecha (Alineado verticalmente de forma limpia) */}
-          <section className="bg-white rounded-3xl p-6 shadow-sm border border-slate-150 self-start">
-            <h2 className="font-bold text-xl mb-6 text-slate-800">Últimos Movimientos</h2>
 
-            <div className="space-y-5">
-              {movimientos.length > 0 ? (
-                movimientos.slice(0, 4).map((movimiento, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div
-                        className={`p-3 rounded-2xl ${movimiento.tipo === "deposito"
-                            ? "bg-green-100 text-green-600"
-                            : "bg-red-100 text-red-600"
-                          }`}
-                      >
-                        {movimiento.tipo === "deposito" ? (
-                          <ArrowUp size={20} />
-                        ) : (
-                          <ArrowDown size={20} />
-                        )}
-                      </div>
-
-                      <div>
-                        <h3 className="font-bold text-slate-850 text-sm">{movimiento.concepto}</h3>
-                        <p className="text-xs text-slate-400">
-                          {new Date(movimiento.fecha).toLocaleDateString("es-MX")} ·{" "}
-                          <span className="capitalize">{movimiento.tipo}</span>
-                        </p>
-                        <span className="inline-block mt-2 bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                          {movimiento.sucursal || "Sin sucursal"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <p
-                      className={`font-bold text-sm ${movimiento.tipo === "deposito"
-                          ? "text-green-600"
-                          : "text-red-600"
-                        }`}
-                    >
-                      {movimiento.tipo === "deposito" ? "+" : "-"}$
-                      {Math.abs(Number(movimiento.monto || 0)).toLocaleString("es-MX")}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500 text-sm">
-                  No hay movimientos registrados.
-                </p>
-              )}
-            </div>
-          </section>
         </div>
       </main>
     </div>
