@@ -1,0 +1,53 @@
+version: "3.9"
+
+# ══════════════════════════════════════════════════════════════
+#  BANCO NEXUS — Docker Swarm Stack (Frontend)
+#  Desplegado en 1 instancia EC2 dedicada al frontend
+# ══════════════════════════════════════════════════════════════
+
+services:
+
+  frontend:
+    image: banco-nexus-frontend:latest   # imagen construida localmente o desde registry
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    networks:
+      - nexus-overlay
+    environment:
+      - NODE_ENV=production
+    deploy:
+      replicas: 1                         # 1 réplica en la instancia EC2 del frontend
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first                # levanta el nuevo antes de bajar el viejo
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+        reservations:
+          cpus: "0.10"
+          memory: 64M
+
+# ──────────────────────────────────────────────────────────────
+#  Red overlay compartida con el stack del backend (si está en
+#  el mismo Swarm) o red local si el frontend está aislado.
+#  Cambia "external: true" a false si este es el único stack.
+# ──────────────────────────────────────────────────────────────
+networks:
+  nexus-overlay:
+    driver: overlay
+    attachable: true
+    external: false                       # ponlo en true si el backend ya creó esta red
