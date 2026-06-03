@@ -11,7 +11,7 @@ import Beneficiarios from "./pages/Beneficiarios";
 
 // ── Guard: redirige al login si no hay token en ningún storage ────────────────
 if (!sessionStorage.getItem("api_url")) {
-  sessionStorage.setItem("api_url", "http://localhost:3001");
+  sessionStorage.setItem("api_url", "http://apinexus.duckdns.org");
 }
 
 function PrivateRoute({ children }) {
