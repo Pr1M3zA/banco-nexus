@@ -5,7 +5,7 @@ import Navbar from "../components/Navbar";
 import { fetchConAlerta } from "../utils/fetchConAlerta";
 
 export default function DatosCliente() {
-  const cuentaInicial = "NX01001";
+  const cuentaInicial = "1234567890";
 
   const [cuentas, setCuentas] = useState([]);
   const [cuentaActual, setCuentaActual] = useState(() => {
@@ -34,7 +34,8 @@ export default function DatosCliente() {
   const cargarDatos = async () => {
     setLoading(true);
     try {
-      const { res } = await fetchConAlerta(`http://localhost:3001/api/cuenta/perfil`);
+      const API_URL = sessionStorage.getItem("api_url");
+      const { res } = await fetchConAlerta(`${API_URL}/api/cuenta/perfil`);
       if (!res) throw new Error("Sin conexión al servidor");
       
       const data = await res.json();

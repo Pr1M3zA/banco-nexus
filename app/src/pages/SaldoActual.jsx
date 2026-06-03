@@ -19,7 +19,7 @@ import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 
 export default function SaldoActual() {
-  const cuentaInicial = "NX01001";
+  const cuentaInicial = "1234567890";
 
   const [datosCuenta, setDatosCuenta] = useState(null);
   const [cuentas, setCuentas] = useState([]);
@@ -84,7 +84,8 @@ export default function SaldoActual() {
 
   const cargarCuentas = async () => {
     try {
-      const res = await fetch("http://localhost:3001/api/cuentas");
+      const API_URL = sessionStorage.getItem("api_url");
+      const res = await fetch(`${API_URL}/api/cuentas`);
       const data = await res.json();
 
       const lista = data.cuentas && Array.isArray(data.cuentas) ? data.cuentas : [];
@@ -105,7 +106,8 @@ export default function SaldoActual() {
   const cargarDatos = async (cuenta) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:3001/api/cuenta/${cuenta}`);
+      const API_URL = sessionStorage.getItem("api_url");
+      const res = await fetch(`${API_URL}/api/cuenta/${cuenta}`);
       const data = await res.json();
 
       if (!res.ok) {

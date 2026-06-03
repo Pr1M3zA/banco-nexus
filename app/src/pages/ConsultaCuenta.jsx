@@ -71,7 +71,8 @@ export default function ConsultaCuenta() {
   useEffect(() => {
     const cargarListaCuentas = async () => {
       try {
-        const res = await fetch("http://localhost:3001/api/cuentas");
+        const API_URL = sessionStorage.getItem("api_url");
+        const res = await fetch(`${API_URL}/api/cuentas`);
         const data = await res.json();
         const lista = data.cuentas && Array.isArray(data.cuentas) ? data.cuentas : [];
         setListaCuentas(lista);
@@ -121,8 +122,9 @@ export default function ConsultaCuenta() {
     setLoading(true);
 
     try {
+      const API_URL = sessionStorage.getItem("api_url");
       const { res: resCuenta, alerta: a1 } = await fetchConAlerta(
-        `http://localhost:3001/api/cuenta/${cuenta}`
+        `${API_URL}/api/cuenta/${cuenta}`
       );
       registrarAlerta(a1);
       if (!resCuenta) throw new Error("Sin conexión con el servidor.");
@@ -137,7 +139,7 @@ export default function ConsultaCuenta() {
       setDatosCuenta(dataCuenta);
 
       const { res: resHistorial, alerta: a2 } = await fetchConAlerta(
-        `http://localhost:3001/api/historial/${cuenta}`
+        `${API_URL}/api/historial/${cuenta}`
       );
       registrarAlerta(a2);
       if (!resHistorial || !resHistorial.ok) throw new Error("No se pudo cargar el historial.");
@@ -236,10 +238,11 @@ export default function ConsultaCuenta() {
     setOperacionLoading(true);
 
     try {
+      const API_URL = sessionStorage.getItem("api_url");
       const endpoint = tipo === "deposito" ? "deposito" : "retiro";
       const numeroCuenta = obtenerNumeroCuenta();
 
-      const res = await fetch(`http://localhost:3001/api/${endpoint}`, {
+      const res = await fetch(`${API_URL}/api/${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -353,7 +356,7 @@ export default function ConsultaCuenta() {
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="NX01001"
+                placeholder="1234567890"
                 value={numeroCuentaInput}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {

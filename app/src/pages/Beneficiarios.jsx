@@ -32,7 +32,8 @@ export default function Beneficiarios() {
     setValidandoCuenta(true);
     setNombreDestinoValidado("");
     try {
-      const { res } = await fetchConAlerta(`http://localhost:3001/api/cuenta/validar/${formCuenta}`);
+      const API_URL = sessionStorage.getItem("api_url");
+      const { res } = await fetchConAlerta(`${API_URL}/api/cuenta/validar/${formCuenta}`);
       if (res && res.ok) {
         const data = await res.json();
         setNombreDestinoValidado(data.nombre);
@@ -49,7 +50,8 @@ export default function Beneficiarios() {
   const cargarDatos = async () => {
     setLoading(true);
     try {
-      const { res: resPerfil } = await fetchConAlerta(`http://localhost:3001/api/cuenta/perfil`);
+      const API_URL = sessionStorage.getItem("api_url");
+      const { res: resPerfil } = await fetchConAlerta(`${API_URL}/api/cuenta/perfil`);
       if (resPerfil && resPerfil.ok) {
         const dataPerfil = await resPerfil.json();
         setDatosCuenta({ cliente: dataPerfil.usuario, cuenta: dataPerfil.cuenta });
@@ -65,7 +67,8 @@ export default function Beneficiarios() {
   };
 
   const cargarBeneficiarios = async () => {
-    const { res } = await fetchConAlerta(`http://localhost:3001/api/beneficiarios`);
+    const API_URL = sessionStorage.getItem("api_url");
+    const { res } = await fetchConAlerta(`${API_URL}/api/beneficiarios`);
     if (res && res.ok) {
       const data = await res.json();
       setBeneficiarios(data.beneficiarios || []);
@@ -121,14 +124,15 @@ export default function Beneficiarios() {
       const token = localStorage.getItem("nexus_token") || sessionStorage.getItem("nexus_token");
       
       let result;
+      const API_URL = sessionStorage.getItem("api_url");
       if (modoModal === "agregar") {
-        result = await fetchConAlerta("http://localhost:3001/api/beneficiarios", {
+        result = await fetchConAlerta(`${API_URL}/api/beneficiarios`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ numeroCuentaDestino: formCuenta.toUpperCase(), alias: formAlias })
         });
       } else {
-        result = await fetchConAlerta(`http://localhost:3001/api/beneficiarios/${beneficiarioSeleccionado._id}`, {
+        result = await fetchConAlerta(`${API_URL}/api/beneficiarios/${beneficiarioSeleccionado._id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ alias: formAlias })
@@ -159,7 +163,8 @@ export default function Beneficiarios() {
     if (!window.confirm("¿Estás seguro de que quieres eliminar a este beneficiario?")) return;
     
     try {
-      const { res } = await fetchConAlerta(`http://localhost:3001/api/beneficiarios/${id}`, {
+      const API_URL = sessionStorage.getItem("api_url");
+      const { res } = await fetchConAlerta(`${API_URL}/api/beneficiarios/${id}`, {
         method: "DELETE"
       });
       if (!res) throw new Error("Sin conexión al servidor");
@@ -315,7 +320,7 @@ export default function Beneficiarios() {
                   </label>
                   <input
                     type="text"
-                    placeholder="Ej. NX01002"
+                    placeholder="Ej. 1234567890"
                     value={formCuenta}
                     onChange={(e) => setFormCuenta(e.target.value.toUpperCase())}
                     onBlur={handleBlurCuenta}

@@ -38,7 +38,8 @@ export default function Transferencia() {
     setValidandoNuevo(true);
     setNombreNuevoValidado("");
     try {
-      const { res } = await fetchConAlerta(`http://localhost:3001/api/cuenta/validar/${formCuentaNuevo}`);
+      const API_URL = sessionStorage.getItem("api_url");
+      const { res } = await fetchConAlerta(`${API_URL}/api/cuenta/validar/${formCuentaNuevo}`);
       if (res && res.ok) {
         const data = await res.json();
         setNombreNuevoValidado(data.nombre);
@@ -70,7 +71,8 @@ export default function Transferencia() {
     setValidandoCuenta(true);
     setNombreDestinoValidado("");
     try {
-      const { res } = await fetchConAlerta(`http://localhost:3001/api/cuenta/validar/${cuentaDestino}`);
+      const API_URL = sessionStorage.getItem("api_url");
+      const { res } = await fetchConAlerta(`${API_URL}/api/cuenta/validar/${cuentaDestino}`);
       if (res && res.ok) {
         const data = await res.json();
         setNombreDestinoValidado(data.nombre);
@@ -89,7 +91,8 @@ export default function Transferencia() {
   const cargarDatos = async () => {
     setLoadingDatos(true);
     try {
-      const { res } = await fetchConAlerta(`http://localhost:3001/api/cuenta/perfil`);
+      const API_URL = sessionStorage.getItem("api_url");
+      const { res } = await fetchConAlerta(`${API_URL}/api/cuenta/perfil`);
       if (!res) throw new Error("Sin conexión al servidor");
       const data = await res.json();
 
@@ -102,7 +105,7 @@ export default function Transferencia() {
         cuenta: data.cuenta
       });
 
-      const { res: resBen } = await fetchConAlerta(`http://localhost:3001/api/beneficiarios`);
+      const { res: resBen } = await fetchConAlerta(`${API_URL}/api/beneficiarios`);
       if (resBen && resBen.ok) {
         const dataBen = await resBen.json();
         setBeneficiarios(dataBen.beneficiarios || []);
@@ -131,7 +134,8 @@ export default function Transferencia() {
     setGuardandoBeneficiario(true);
     
     try {
-      const { res } = await fetchConAlerta("http://localhost:3001/api/beneficiarios", {
+      const API_URL = sessionStorage.getItem("api_url");
+      const { res } = await fetchConAlerta(`${API_URL}/api/beneficiarios`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ numeroCuentaDestino: formCuentaNuevo.toUpperCase(), alias: formAliasNuevo })
@@ -177,7 +181,8 @@ export default function Transferencia() {
     setLoadingTransferencia(true);
 
     try {
-      const { res } = await fetchConAlerta("http://localhost:3001/api/transferencia", {
+      const API_URL = sessionStorage.getItem("api_url");
+      const { res } = await fetchConAlerta(`${API_URL}/api/transferencia`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -277,7 +282,7 @@ export default function Transferencia() {
                   </label>
                   <input
                     type="text"
-                    placeholder="Ej. NX01002"
+                    placeholder="Ej. 1234567890"
                     value={cuentaDestino}
                     onChange={(e) => setCuentaDestino(e.target.value.toUpperCase())}
                     onBlur={handleBlurCuentaDestino}
@@ -483,7 +488,7 @@ export default function Transferencia() {
                 </label>
                 <input
                   type="text"
-                  placeholder="Ej. NX01002"
+                  placeholder="Ej. 1234567890"
                   value={formCuentaNuevo}
                   onChange={(e) => setFormCuentaNuevo(e.target.value.toUpperCase())}
                   onBlur={handleBlurCuentaNuevo}

@@ -54,7 +54,7 @@ export const cuentaDemo = {
   },
 
   cuenta: {
-    numeroCuenta: "NX01001",
+    numeroCuenta: "1234567890",
     tipo: "Cuenta Premium",
     saldo: 47892.56,
     status: "activa",

@@ -16,7 +16,7 @@ import AlertMessage from "../components/AlertMessage";
 import { fetchConAlerta } from "../utils/fetchConAlerta";
 
 export default function Dashboard() {
-  const cuentaInicial = "NX01001";
+  const cuentaInicial = "1234567890";
 
   const [datosCuenta, setDatosCuenta] = useState(null);
   const [movimientos, setMovimientos] = useState([]);
@@ -61,9 +61,11 @@ export default function Dashboard() {
   const cargarDatos = async () => {
     setLoading(true);
 
+    const API_URL = sessionStorage.getItem("api_url");
+
     try {
       const { res: resPerfil, alerta: a1 } = await fetchConAlerta(
-        `http://localhost:3001/api/cuenta/perfil`
+        `${API_URL}/api/cuenta/perfil`
       );
       registrarAlerta(a1);
       if (!resPerfil) throw new Error("Sin conexión al servidor");
@@ -81,7 +83,7 @@ export default function Dashboard() {
       }
 
       const { res: resHistorial, alerta: a2 } = await fetchConAlerta(
-        `http://localhost:3001/api/cuenta/movimientos`
+        `${API_URL}/api/cuenta/movimientos`
       );
       registrarAlerta(a2);
       const dataHistorial = resHistorial && resHistorial.ok ? await resHistorial.json() : { movimientos: [] };

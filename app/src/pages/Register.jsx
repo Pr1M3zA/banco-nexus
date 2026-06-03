@@ -14,7 +14,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-const API_URL = "http://localhost:3001";
+const API_URL = sessionStorage.getItem("api_url");
 
 export default function Register() {
   const navigate = useNavigate();

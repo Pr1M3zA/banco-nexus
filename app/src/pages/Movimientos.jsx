@@ -17,7 +17,7 @@ import Navbar from "../components/Navbar";
 import { fetchConAlerta } from "../utils/fetchConAlerta";
 
 export default function Movimientos() {
-  const cuentaInicial = "NX01001";
+  const cuentaInicial = "1234567890";
 
   const [cuentas, setCuentas] = useState([]);
   const [cuentaActual, setCuentaActual] = useState(() => {
@@ -48,7 +48,8 @@ export default function Movimientos() {
   const cargarDatos = async () => {
     setLoading(true);
     try {
-      const { res: resPerfil } = await fetchConAlerta(`http://localhost:3001/api/cuenta/perfil`);
+      const API_URL = sessionStorage.getItem("api_url");
+      const { res: resPerfil } = await fetchConAlerta(`${API_URL}/api/cuenta/perfil`);
       if (!resPerfil) throw new Error("Sin conexión al servidor");
       const dataPerfil = await resPerfil.json();
 
@@ -56,7 +57,7 @@ export default function Movimientos() {
         throw new Error(dataPerfil.mensaje || "No se pudo cargar la cuenta");
       }
 
-      const { res: resHistorial } = await fetchConAlerta(`http://localhost:3001/api/cuenta/movimientos`);
+      const { res: resHistorial } = await fetchConAlerta(`${API_URL}/api/cuenta/movimientos`);
       const dataHistorial = resHistorial && resHistorial.ok ? await resHistorial.json() : { movimientos: [] };
 
       const datosAdaptados = {
