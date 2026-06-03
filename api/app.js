@@ -12,12 +12,17 @@ const transferenciaRoutes = require('./src/routes/transferenciaRoutes');
 
 const app = express();
 
+
+/*
 // CORS restringido al origen del frontend
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGIN || 'http://localhost:3000',
+  origin: process.env.ALLOWED_ORIGIN || 'http://localhost:3001',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+*/
+// CORS abierto para desarrollo (ajustar en producción)
+app.use(cors());
 
 app.use(express.json());
 

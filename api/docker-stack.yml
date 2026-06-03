@@ -18,7 +18,7 @@ services:
     ports:
       - "3001:3001"
     env_file:
-      - /home/ubuntu/nexus.env                        # env file en el manager de Swarm
+      - /home/ec2-user/nexus.env                      # env file en el manager de Swarm
     networks:
       - nexus-net
 
@@ -28,9 +28,9 @@ networks:
 
 # ─── Pasos de despliegue en EC2 Manager ───────────────────────────────────────
 # 1. Copiar este archivo al manager:
-#      scp docker-stack.yml ubuntu@<IP-EC2-1>:~/
+#      scp docker-stack.yml ec2-user@<IP-EC2-1>:~/
 # 2. Copiar el .env como nexus.env:
-#      scp backend/.env ubuntu@<IP-EC2-1>:~/nexus.env
+#      scp backend/.env ec2-user@<IP-EC2-1>:~/nexus.env
 # 3. Desplegar:
 #      docker stack deploy -c docker-stack.yml nexus
 # 4. Verificar réplicas:

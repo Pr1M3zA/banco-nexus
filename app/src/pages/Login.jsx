@@ -14,10 +14,6 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-const API_URL = sessionStorage.getItem("api_url");
-
-
-
 export default function Login() {
   const navigate = useNavigate();
 
@@ -40,6 +36,7 @@ export default function Login() {
 
     setLoading(true);
     try {
+      const API_URL = sessionStorage.getItem("api_url") || "http://apinexus.duckdns.org";
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

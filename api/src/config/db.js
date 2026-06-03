@@ -1,4 +1,6 @@
 const { MongoClient, ServerApiVersion } = require('mongodb');
+const dns = require("dns");
+dns.setServers(["8.8.8.8"]);
 
 const MONGO_URI = `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_SERVER}`;
 
