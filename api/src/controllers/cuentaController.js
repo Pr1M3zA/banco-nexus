@@ -127,4 +127,36 @@ async function actualizarPerfil(req, res) {
   }
 }
 
-module.exports = { obtenerCuenta, obtenerMovimientos, obtenerPerfil, actualizarPerfil };
+// ─── Validar cuenta por número ────────────────────────────────────────────────
+async function validarNumeroCuenta(req, res) {
+  try {
+    const numeroCuenta = req.params.numeroCuenta?.trim().toUpperCase();
+
+    if (!numeroCuenta || !/^\d{10}$/.test(numeroCuenta)) {
+      return res.status(400).json({ ok: false, mensaje: 'Formato de cuenta inválido' });
+    }
+
+    const db = getDB();
+
+    const cuenta = await db.collection('cuentas').findOne(
+      { numeroCuenta },
+      { projection: { clienteId: 1 } }
+    );
+
+    if (!cuenta) {
+      return res.status(404).json({ ok: false, mensaje: 'Cuenta no encontrada' });
+    }
+
+    const cliente = await db.collection('clientes').findOne(
+      { _id: cuenta.clienteId },
+      { projection: { nombre: 1 } }
+    );
+
+    res.json({ ok: true, nombre: cliente?.nombre || 'Titular' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ ok: false, mensaje: 'Error interno del servidor' });
+  }
+}
+
+module.exports = { obtenerCuenta, obtenerMovimientos, obtenerPerfil, actualizarPerfil, validarNumeroCuenta };

@@ -4,6 +4,7 @@ const {
   obtenerMovimientos,
   obtenerPerfil,
   actualizarPerfil,
+  validarNumeroCuenta,          
 } = require('../controllers/cuentaController');
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -15,5 +16,6 @@ router.get('/saldo', obtenerCuenta);
 router.get('/movimientos', obtenerMovimientos);
 router.get('/perfil', obtenerPerfil);
 router.put('/perfil', actualizarPerfil);
+router.get('/validar/:numeroCuenta', validarNumeroCuenta); 
 
 module.exports = router;
