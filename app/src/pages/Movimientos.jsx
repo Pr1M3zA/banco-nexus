@@ -92,7 +92,7 @@ export default function Movimientos() {
     let lista = [...movimientos];
 
     if (filtro === "ingresos") {
-      lista = lista.filter((m) => m.tipo === "deposito");
+      lista = lista.filter((m) => m.tipo === "deposito" || m.tipo === "abono");
     } else if (filtro === "egresos") {
       lista = lista.filter((m) => m.tipo === "retiro" || m.tipo === "cargo");
     }
@@ -112,11 +112,11 @@ export default function Movimientos() {
   // Cálculos de flujo de caja basados en los movimientos filtrados
   const cashflow = useMemo(() => {
     const ingresos = movimientosFiltrados
-      .filter((m) => m.tipo === "deposito")
+      .filter((m) => m.tipo === "deposito" || m.tipo === "abono")
       .reduce((sum, m) => sum + Number(m.monto || 0), 0);
 
     const egresos = movimientosFiltrados
-      .filter((m) => m.tipo !== "deposito")
+      .filter((m) => m.tipo !== "deposito" && m.tipo !== "abono")
       .reduce((sum, m) => sum + Math.abs(Number(m.monto || 0)), 0);
 
     return {
@@ -165,11 +165,11 @@ export default function Movimientos() {
   // Flujo de caja específico para el período seleccionado
   const cashflowPeriodo = useMemo(() => {
     const ingresos = movimientosPeriodo
-      .filter((m) => m.tipo === "deposito")
+      .filter((m) => m.tipo === "deposito" || m.tipo === "abono")
       .reduce((sum, m) => sum + Number(m.monto || 0), 0);
 
     const egresos = movimientosPeriodo
-      .filter((m) => m.tipo !== "deposito")
+      .filter((m) => m.tipo !== "deposito" && m.tipo !== "abono")
       .reduce((sum, m) => sum + Math.abs(Number(m.monto || 0)), 0);
 
     return {
@@ -360,12 +360,12 @@ export default function Movimientos() {
                   <div className="flex items-center gap-4">
                     <div
                       className={`p-3 rounded-xl no-print ${
-                        mov.tipo === "deposito"
+                        (mov.tipo === "deposito" || mov.tipo === "abono")
                           ? "bg-emerald-50 text-emerald-600"
                           : "bg-rose-50 text-rose-600"
                       }`}
                     >
-                      {mov.tipo === "deposito" ? (
+                      {(mov.tipo === "deposito" || mov.tipo === "abono") ? (
                         <ArrowUpRight size={20} />
                       ) : (
                         <ArrowDownRight size={20} />
@@ -387,7 +387,7 @@ export default function Movimientos() {
                           })}
                         </p>
                         <span className="text-slate-300">•</span>
-                        <span className="text-xs text-slate-400 font-semibold">{mov.tipo === "deposito" ? "Ingreso" : "Egreso"}</span>
+                        <span className="text-xs text-slate-400 font-semibold">{(mov.tipo === "deposito" || mov.tipo === "abono") ? "Ingreso" : "Egreso"}</span>
                       </div>
 
                       <span className="inline-block mt-2 bg-blue-50 text-blue-700 text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
@@ -399,12 +399,12 @@ export default function Movimientos() {
                   <div className="text-right">
                     <p
                       className={`text-md font-black ${
-                        mov.tipo === "deposito"
+                        (mov.tipo === "deposito" || mov.tipo === "abono")
                           ? "text-emerald-600"
                           : "text-rose-600"
                       }`}
                     >
-                      {mov.tipo === "deposito" ? "+" : "-"}$
+                      {(mov.tipo === "deposito" || mov.tipo === "abono") ? "+" : "-"}$
                       {Math.abs(Number(mov.monto || 0)).toLocaleString("es-MX", {
                         minimumFractionDigits: 2,
                       })}
@@ -508,10 +508,10 @@ export default function Movimientos() {
                       <td className="py-3 font-bold text-slate-800">{mov.concepto}</td>
                       <td className="py-3 text-slate-500">{mov.sucursal || "Sin sucursal"}</td>
                       <td className="py-3 font-semibold text-slate-500">
-                        {mov.tipo === "deposito" ? "Ingreso" : "Egreso"}
+                        {(mov.tipo === "deposito" || mov.tipo === "abono") ? "Ingreso" : "Egreso"}
                       </td>
-                      <td className={`py-3 text-right font-bold text-sm ${mov.tipo === "deposito" ? "text-emerald-600" : "text-rose-600"}`}>
-                        {mov.tipo === "deposito" ? "+" : "-"}${Math.abs(Number(mov.monto || 0)).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                      <td className={`py-3 text-right font-bold text-sm ${(mov.tipo === "deposito" || mov.tipo === "abono") ? "text-emerald-600" : "text-rose-600"}`}>
+                        {(mov.tipo === "deposito" || mov.tipo === "abono") ? "+" : "-"}${Math.abs(Number(mov.monto || 0)).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                   ))
