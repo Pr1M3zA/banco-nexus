@@ -1,0 +1,106 @@
+name: CI/CD Deployment to AWS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./api
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/nexus-backend:latest
+            ${{ secrets.DOCKER_USERNAME }}/nexus-backend:${{ github.sha }}
+
+  build-and-push-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/banco-nexus-frontend:latest
+            ${{ secrets.DOCKER_USERNAME }}/banco-nexus-frontend:${{ github.sha }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build-and-push-backend, build-and-push-frontend]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ─── DESPLIEGUE DEL BACKEND (EC2 MANAGER - DOCKER SWARM) ───
+      - name: Copy docker-stack.yml to EC2 Manager
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_BACKEND_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_BACKEND_SSH_KEY }}
+          source: "./api/docker-stack.yml"
+          target: "/home/ec2-user/"
+          strip_components: 1
+
+      - name: Deploy Backend Stack in Docker Swarm
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_BACKEND_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_BACKEND_SSH_KEY }}
+          script: |
+            export DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}"
+            # Desplegar stack actualizando el archivo
+            docker stack deploy -c /home/ec2-user/docker-stack.yml nexus
+            # Forzar actualización progresiva de la imagen
+            docker service update --image ${{ secrets.DOCKER_USERNAME }}/nexus-backend:latest --force nexus_backend
+
+      # ─── DESPLIEGUE DEL FRONTEND (EC2 DEDICADO AL FRONTEND) ───
+      - name: Copy docker-compose.yml to EC2 Frontend
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_FRONTEND_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_FRONTEND_SSH_KEY }}
+          source: "./app/docker-compose.yml"
+          target: "/home/ec2-user/"
+          strip_components: 1
+
+      - name: Deploy Frontend Stack in EC2 Dedicated
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_FRONTEND_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_FRONTEND_SSH_KEY }}
+          script: |
+            export DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}"
+            # Descargar la última imagen del frontend
+            docker pull ${{ secrets.DOCKER_USERNAME }}/banco-nexus-frontend:latest
+            # Desplegar el stack del frontend en Swarm
+            docker stack deploy -c /home/ec2-user/docker-compose.yml frontend
+            # Actualizar servicio para aplicar cambios progresivamente
+            docker service update --image ${{ secrets.DOCKER_USERNAME }}/banco-nexus-frontend:latest --force frontend_frontend
