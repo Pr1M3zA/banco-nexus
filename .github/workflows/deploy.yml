@@ -84,23 +84,24 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_FRONTEND_HOST }}
-          username: ec2-user
+          username: ubuntu
           key: ${{ secrets.EC2_FRONTEND_SSH_KEY }}
           source: "./app/docker-compose.yml"
-          target: "/home/ec2-user/"
+          target: "/home/ubuntu/"
           strip_components: 1
 
       - name: Deploy Frontend Stack in EC2 Dedicated
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_FRONTEND_HOST }}
-          username: ec2-user
+          username: ubuntu
           key: ${{ secrets.EC2_FRONTEND_SSH_KEY }}
           script: |
-            export DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}"
-            # Descargar la última imagen del frontend
             docker pull ${{ secrets.DOCKER_USERNAME }}/banco-nexus-frontend:latest
-            # Desplegar el stack del frontend en Swarm
-            docker stack deploy -c /home/ec2-user/docker-compose.yml frontend
-            # Actualizar servicio para aplicar cambios progresivamente
-            docker service update --image ${{ secrets.DOCKER_USERNAME }}/banco-nexus-frontend:latest --force frontend_frontend
+            docker stack deploy -c /home/ubuntu/docker-compose.yml nexus-frontend
+            docker service update \
+              --image ${{ secrets.DOCKER_USERNAME }}/banco-nexus-frontend:latest \
+              --update-order start-first \
+              --update-failure-action rollback \
+              --force \
+              nexus-frontend_frontend
