@@ -119,11 +119,11 @@ export default function Dashboard() {
 
 
   const ingresos = movimientos
-    .filter((m) => m.tipo === "deposito")
+    .filter((m) => m.tipo === "deposito" || m.tipo === "abono")
     .reduce((sum, m) => sum + Number(m.monto || 0), 0);
 
   const egresos = movimientos
-    .filter((m) => m.tipo !== "deposito")
+    .filter((m) => m.tipo !== "deposito" && m.tipo !== "abono")
     .reduce((sum, m) => sum + Math.abs(Number(m.monto || 0)), 0);
 
   const chartData = useMemo(() => {
@@ -156,7 +156,7 @@ export default function Dashboard() {
     }
 
     ordenados.forEach((m) => {
-      if (m.tipo === "deposito") saldo += Number(m.monto || 0);
+      if (m.tipo === "deposito" || m.tipo === "abono") saldo += Number(m.monto || 0);
       else saldo -= Math.abs(Number(m.monto || 0));
 
       const movDate = new Date(m.fecha);
