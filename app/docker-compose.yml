@@ -8,7 +8,7 @@ version: "3.9"
 services:
 
   frontend:
-    image: banco-nexus-frontend:latest   # imagen construida localmente o desde registry
+    image: ${DOCKER_USERNAME}/banco-nexus-frontend:latest   # imagen desde Docker Hub
     build:
       context: .
       dockerfile: Dockerfile
